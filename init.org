@@ -1,0 +1,1064 @@
+#+TITLE: Emacs configuration file
+#+AUTHOR: Hsin-Yeh Wu 
+#+BABEL: :cache yes 
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{inconsolate}
+#+LATEX_HEADER: \usepackage{utf8}{inputenc}
+#+PROPERTY: header-args :tangle yes
+
+* About 
+
+  This is a configuration file for emacs.  
+
+  Mainly learned/stolen by this inspiring init file https://github.com/dangom/emacs.d
+
+* initial
+** lexical binding
+   #+BEGIN_SRC emacs-lisp
+   ;;; -*- lexical-binding: t; -*-
+   #+END_SRC
+** setting up auto tangle
+   Copy these code from https://github.com/larstvei/dot-emacs
+
+   When this configuration is loaded for the first time, the ~init.el~ is
+   the file that is loaded. It looks like this:
+
+   #+BEGIN_SRC emacs-lisp :tangle no
+;; This file replaces itself with the actual configuration at first run.
+
+;; We can't tangle without org!
+(require 'org)
+;; Open the configuration
+(find-file (concat user-emacs-directory "init.org"))
+;; tangle it
+(org-babel-tangle)
+;; load it
+(load-file (concat user-emacs-directory "init.el"))
+;; finally byte-compile it
+(byte-compile-file (concat user-emacs-directory "init.el"))
+   #+END_SRC
+
+   The =init.el= should (after the first run) mirror the source blocks in
+   the =init.org=. We can use =C-c C-v t= to run =org-babel-tangle=, which
+   extracts the code blocks from the current file into a source-specific
+   file (in this case a =.el=-file).
+
+   To avoid doing this each time a change is made we can add a function to
+   the =after-save-hook= ensuring to always tangle and byte-compile the
+   =org=-document after changes.
+
+   #+BEGIN_SRC emacs-lisp :tangle no
+(defun tangle-init ()
+  "If the current buffer is 'init.org' the code-blocks are
+     tangled, and the tangled file is compiled."
+  (interactive)
+  (when (equal (buffer-file-name)
+	       (expand-file-name (concat user-emacs-directory "init.org")))
+    ;; Avoid running hooks when tangling.
+    (let ((prog-mode-hook nil))
+      (org-babel-tangle)
+      (byte-compile-file (concat user-emacs-directory "init.el")))))
+
+;; (add-hook 'after-save-hook 'tangle-init)
+   #+END_SRC
+
+** start time
+   #+BEGIN_SRC emacs-lisp
+(setq emacs-load-start-time (current-time))
+   #+END_SRC
+
+** don't GC during startup to save time
+   
+   #+BEGIN_SRC emacs-lisp
+;; stolen from doom-emacs
+(defvar my--file-name-handler-alist file-name-handler-alist)
+(setq gc-cons-threshold most-positive-fixnum
+      gc-cons-percentage 0.6
+      file-name-handler-alist nil)
+   #+END_SRC
+** setting custom file
+   
+   #+BEGIN_SRC emacs-lisp
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(if (file-exists-p "~/.custom.el") (load-file "~/.custom.el"))
+   #+END_SRC
+
+* package related
+** bootstrap straight
+
+   Straight.el is a functional package manager for Emacs. It server as a replacement for package.el
+   https://github.com/raxod502/straight.el
+
+
+   #+BEGIN_SRC emacs-lisp 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+	(url-retrieve-synchronously
+	 "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+	 'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;;  Effectively replace use-package with straight-use-package
+;;  https://github.com/raxod502/straight.el/blob/develop/README.md#integration-with-use-package
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
+   #+END_SRC
+
+** minimal package.el config 
+
+   This setting is inspired by 
+   https://github.crookster.org/switching-to-straight.el-from-emacs-26-builtin-package.el/#put-in-place-org-workaround
+   The article also talks about how he switched from package.el to straight.el
+
+   #+begin_src emacs-lisp
+(require 'package)
+(add-to-list 'package-archives
+	     '("melpa" . "https://melpa.org/packages/"))
+   #+end_src
+
+** use-feature
+
+   #+BEGIN_SRC emacs-lisp
+(defmacro use-feature (name &rest args)
+  "Like `use-package', but with `straight-use-package-by-default' disabled."
+  (declare (indent defun))
+  `(use-package ,name
+     :straight nil
+     ,@args))
+   #+END_SRC
+
+** hydra
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package hydra)
+;; :config
+  ;(setq hydra-hint-display-type 'my/posframe)
+  ;(defun my/hydra-posframe-show (str)
+  ;  (require 'posframe)
+  ;  (posframe-show
+  ;   " *hydra-posframe*"
+  ;   :string str
+  ;   :point (point)
+  ;   :internal-border-color "gray50"
+  ;   :internal-border-width 2
+  ;   :poshandler #'posframe-poshandler-frame-top-center)))
+  ;(defun my/hydra-posframe-hide ()
+  ;  (posframe-hide " *hydra-posframe*")))
+  ;;(setq hydra-hint-display-alist
+  ;;	(list (list 'my/posframe #'my/hydra-posframe-show #'my/hydra-posframe-hide))
+  ;;	hydra--work-around-dedicated nil))
+   #+END_SRC
+
+** general
+   #+BEGIN_SRC emacs-lisp
+(use-package general
+  :config
+  (progn
+    (general-create-definer my/normal-keys
+      :states 'normal
+      :keymaps 'override)
+    (general-create-definer my/motion-keys
+      :states 'motion
+      :keymaps 'override)
+    (general-create-definer my/non-insert-keys
+      :states '(nromal visual motion)
+      :keymaps 'override)
+    (general-create-definer my/leader-keys
+      :prefix "C-c")
+    (general-create-definer my/leader-keys-major-mode
+      :states '(normal visual motion emacs insert)
+      :keymaps 'override
+      :prefix ","
+      :non-normal-prefix "M-,")
+    (general-create-definer my/leader-keys-minor-mode
+      :states '(normal visual motion emacs insert)
+      :keymaps 'override
+      :prefix ";"
+      :non-normal-prefix "M-;")
+    (general-create-definer my/all-states-keys
+      :states '(normal visual motion emacs insert)
+      :keymaps 'override)
+    ;; (general-create-definer my/leader-keys-extra
+    ;;   :states '(normal visual motion emacs insert)
+    ;;   :keymaps 'override
+    ;;   :prefix ";"
+    ;;   :non-normal-prefix "M-;")
+    ))
+
+  ;;;###autoload
+(defun my/lisp-indent-function (indent-point state)
+  "This function is the normal value of the variable `lisp-indent-function'.
+  The function `calculate-lisp-indent' calls this to determine
+  if the arguments of a Lisp function call should be indented specially.
+  INDENT-POINT is the position at which the line being indented begins.
+  Point is located at the point to indent under (for default indentation);
+  STATE is the `parse-partial-sexp' state for that position.
+  If the current line is in a call to a Lisp function that has a non-nil
+  property `lisp-indent-function' (or the deprecated `lisp-indent-hook'),
+  it specifies how to indent.  The property value can be:
+  ,* `defun', meaning indent `defun'-style
+    \(this is also the case if there is no property and the function
+    has a name that begins with \"def\", and three or more arguments);
+  ,* an integer N, meaning indent the first N arguments specially
+    (like ordinary function arguments), and then indent any further
+    arguments like a body;
+  ,* a function to call that returns the indentation (or nil).
+    `lisp-indent-function' calls this function with the same two arguments
+    that it itself received.
+  This function returns either the indentation to use, or nil if the
+  Lisp function does not specify a special indentation."
+  (let ((normal-indent (current-column))
+	(orig-point (point)))
+    (goto-char (1+ (elt state 1)))
+    (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
+    (cond
+     ;; car of form doesn't seem to be a symbol, or is a keyword
+     ((and (elt state 2)
+	   (or (not (looking-at "\\sw\\|\\s_"))
+	       (looking-at ":")))
+      (if (not (> (save-excursion (forward-line 1) (point))
+		  calculate-lisp-indent-last-sexp))
+	  (progn (goto-char calculate-lisp-indent-last-sexp)
+		 (beginning-of-line)
+		 (parse-partial-sexp (point)
+				     calculate-lisp-indent-last-sexp 0 t)))
+      ;; Indent under the list or under the first sexp on the same
+      ;; line as calculate-lisp-indent-last-sexp.  Note that first
+      ;; thing on that line has to be complete sexp since we are
+      ;; inside the innermost containing sexp.
+      (backward-prefix-chars)
+      (current-column))
+     ((and (save-excursion
+	     (goto-char indent-point)
+	     (skip-syntax-forward " ")
+	     (not (looking-at ":")))
+	   (save-excursion
+	     (goto-char orig-point)
+	     (looking-at ":")))
+      (save-excursion
+	(goto-char (+ 2 (elt state 1)))
+	(current-column)))
+     (t
+      (let ((function (buffer-substring (point)
+					(progn (forward-sexp 1) (point))))
+	    method)
+	(setq method (or (function-get (intern-soft function)
+				       'lisp-indent-function)
+			 (get (intern-soft function) 'lisp-indent-hook)))
+	(cond ((or (eq method 'defun)
+		   (and (null method)
+			(> (length function) 3)
+			(string-match "\\`def" function)))
+	       (lisp-indent-defform state indent-point))
+	      ((integerp method)
+	       (lisp-indent-specform method state
+				     indent-point normal-indent))
+	      (method
+	       (funcall method indent-point state))))))))
+
+(with-eval-after-load 'lisp-mode
+  (setq lisp-indent-function 'my/lisp-indent-function))
+   #+END_SRC
+
+** try
+
+   #+BEGIN_SRC emacs-lisp
+(use-package try
+  :commands try)
+   #+END_SRC
+
+* defaults
+** settings related to built-in features 
+   #+begin_src emacs-lisp
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+;; replace "yes" and "no" by "y" and "n"
+(defalias 'yes-or-no-p 'y-or-n-p)
+(setq display-time-24hr-format t
+      display-time-default-load-average nil
+      display-time-day-and-date t)
+;; (display-time-mode t)
+;;
+(column-number-mode t)
+(size-indication-mode t)
+(blink-cursor-mode 0)
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+;; auto save
+(auto-save-visited-mode t)
+(setq  auto-save-default t
+       auto-save-timeout 20
+       auto-save-interval 20)
+(defvar emacs-autosave-directory
+  (concat user-emacs-directory "autosaves/"))
+(unless (file-exists-p emacs-autosave-directory)
+  (make-directory emacs-autosave-directory))
+(setq auto-save-file-name-transforms
+      `((".*" ,emacs-autosave-directory t)))
+;; backup
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups"))
+      kept-new-versions 10
+      kept-old-versions 0
+      delete-old-versions t
+      backup-by-copying t
+      vc-make-backup-files t)
+(setq delete-by-moving-to-trash t)
+;; scratch buffer message
+(setq initial-scratch-message ";; Better to run than curse the road.\n")
+;; scratch major mode
+(setq initial-major-mode 'emacs-lisp-mode)
+;; save system clipboard contents to emacs kill ring
+(setq save-interprogram-paste-before-kill t)
+;; change emacs frame title
+(setq frame-title-format
+      '("" invocation-name ": " (:eval (replace-regexp-in-string
+					"^ +" "" (buffer-name)))))
+
+;; set up desktop, it restores the buffers that you closed in the previous session.
+;; --no-desktop for disabling desktop
+(use-package desktop
+  :config
+  (add-to-list 'desktop-globals-to-save 'register-alist)
+  (setq desktop-lazy-verbose nil
+	desktop-modes-not-to-save '(tags-table-mode emacs-lisp-mode)
+	desktop-restore-eager 15)
+  (desktop-save-mode 1))
+
+;; highlight current line
+(use-package hl-line
+  :init
+  (add-hook 'prog-mode-hook (lambda () (hl-line-mode t)))
+  (add-hook 'text-mode-hook (lambda () (hl-line-mode t))))
+
+;; window-scale
+(defhydra hydra-window-scale ()
+  "window-scale"
+  ("i" (lambda () (interactive) (enlarge-window-horizontally 10)) "in")
+  ("o" (lambda () (interactive) (shrink-window-horizontally 10)) "out")
+  ("I" (lambda () (interactive) (enlarge-window 5)) "IN")
+  ("O" (lambda () (interactive) (shrink-window 5)) "OUT")
+  ("r" balance-windows "reset")
+  ("q" nil "quit"))
+(my/leader-keys
+  "w" 'hydra-window-scale/body)
+
+;; build-in modes
+(use-package eldoc
+  :ghook ('(emacs-lisp-mode-hook
+	    lisp-interaction-mode-hook
+	    ielm-mode-hook
+	    eval-expression-minibuffer-setup-hook)))
+
+(use-package display-line-numbers
+  :if (version<= "26.1" emacs-version)
+  :ghook ('after-init-hook #'global-display-line-numbers-mode)
+  :general
+  (my/leader-keys
+    "n" 'my/toggle-line-numbers-type)
+  :config
+  (setq display-line-numbers-type 'visual)
+  ;;;###autoload
+  (defun my/toggle-line-numbers-type ()
+    (interactive)
+    (if (eq display-line-numbers t)
+	(progn
+	  (setq display-line-numbers nil)
+	  (message "disable line numbers"))
+      (if (eq display-line-numbers nil)
+	  (progn
+	    (setq display-line-numbers 'visual)
+	    (message "show visual line numbers"))
+	(progn
+	  (setq display-line-numbers t)
+	  (message "Show absolute line numbers"))))))
+
+(use-package winner
+  :ensure nil
+  :init
+  (defalias 'wu 'winner-undo)
+  (defalias 'wU 'winner-redo)
+  :config
+  (setq winner-boring-buffers
+	'("*Completions*"
+	  "*Compile-Log*"
+	  "*inferior-lisp*"
+	  "*Fuzzy Completions*"
+	  "*Apropos*"
+	  "*Help*"
+	  "*cvs*"
+	  "*Buffer List*"
+	  "*Ibuffer*"
+	  "*esh command on file*"
+	  "*Youdao Dictionary*"
+	  ))
+  (winner-mode))
+
+;; frequently accessed files 
+(defhydra hydra-frequently-accessed-files (:exit t)
+  "files"
+  ("n" (lambda () (interactive) (find-file "~/Dropbox/org/Note.org")) "Note.org")
+  ("i" (lambda () (interactive) (find-file "~/.emacs.d/init.org")) "init.org")
+  ("h" (lambda () (interactive) (deer "~/Documents/HEP/HGCal/TestBeam/")) "HGCal")
+  ("q" nil "quit"))
+(defalias 'ff 'hydra-frequently-accessed-files/body)
+
+
+   #+end_src
+* UI
+** GUI frame 
+
+   #+begin_src emacs-lisp
+
+;; Suppress GUI features
+(setq use-file-dialog nil)
+(setq use-dialog-box nil)
+(setq inhibit-startup-screen t)
+(setq inhibit-startup-echo-area-message t)
+
+;; Show a marker in the left fringe for lines not in the buffer
+(setq-default indicate-empty-lines t)
+
+;; NO tool bar
+(if (fboundp 'tool-bar-mode)
+    (tool-bar-mode -1))
+;; no scroll bar
+(if (fboundp 'set-scroll-bar-mode)
+    (set-scroll-bar-mode nil))
+;; no menu bar
+(if (fboundp 'menu-bar-mode)
+    (menu-bar-mode -1))
+
+   #+end_src
+
+** highlight parentheses
+
+   #+BEGIN_SRC emacs-lisp
+(use-package highlight-parentheses
+  :diminish highlight-parentheses-mode
+  :hook ('prog-mode-hook #'highlight-parentheses-mode)
+  :config
+  (setq hl-paren-delay 0.2)
+  (setq hl-paren-colors '("Springgreen3"
+			  "IndianRed1"
+			  "IndianRed3"
+			  "IndianRed4"))
+  (set-face-attribute 'hl-paren-face nil :weight 'ultra-bold))
+   #+END_SRC
+
+* theme
+  *Could switch theme function*
+*** grubox-theme
+    #+begin_src emacs-lisp :tangle no
+(use-package gruvbox-theme
+  :init
+  (load-theme 'gruvbox-dark-soft t)
+  )
+    #+end_src
+
+*** zenburn
+    #+begin_src emacs-lisp
+(use-package zenburn-theme
+  :init
+  (load-theme 'zenburn t)
+  )
+    #+end_src
+* source control 
+** git 
+*** magit   
+#+BEGIN_SRC emacs-lisp
+  (use-package magit
+    :commands (magit-status magit-init)
+    :general
+    (:keymaps 'magit-mode-map
+     "0" nil
+     "1" nil
+     "2" nil
+     "3" nil
+     "4" nil)
+    (my/leader-keys
+      "gc"  'magit-clone
+      "gff" 'magit-find-file
+      "gfl" 'magit-log-buffer-file
+      "gfd" 'magit-diff-buffer-file-popup
+      "gi"  'magit-init
+      "gL"  'magit-list-repositories
+      "gm"  'magit-dispatch-popup
+      "gs"  'magit-status
+      "gS"  'magit-stage-file
+      "gU"  'magit-unstage-file)
+    (:keymaps 'magit-hunk-section-map
+     "RET" 'magit-diff-visit-file-other-window)
+    :init
+    (add-hook 'magit-popup-mode-hook (lambda () (display-line-numbers-mode -1)))
+    (add-hook 'magit-status-mode-hook (lambda () (display-line-numbers-mode 1)))
+    :config
+    (setq transient-display-buffer-action '(display-buffer-below-selected)
+	  magit-completing-read-function #'ivy-completing-read))
+#+END_SRC
+
+* Encryption
+** epa-file
+   #+BEGIN_SRC emacs-lisp
+;;(use-package epa-file
+;;:config
+;;  (epa-file-enable))
+   #+END_SRC
+
+* Language
+** Org related 
+*** org mode
+
+    #+BEGIN_SRC emacs-lisp
+
+(use-package org
+  :straight org-plus-contrib   ;; use org-plus-contrib package 
+  :mode ("\\.org\\'" . org-mode)
+  :init
+  (require 'org-tempo)
+  (setq org-log-done 'time)
+  (setq org-M-RET-may-split-line nil)
+  (setq org-display-custom-times nil)
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-use-fast-todo-selection t)
+  (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+
+
+  (setq org-agenda-files '("~/Dropbox/org/"))
+  ;; Set to the location of your Org files on your local system
+  (setq org-directory "~/Dropbox/org")
+  ;; Set to the name of the file where new notes will be stored
+  (setq org-mobile-inbox-for-pull "~/Dropbox/flagged.org")
+  ;; Set to <your Dropbox root directory>/MobileOrg.
+  (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+
+  (setq org-todo-keywords
+	(quote ((sequence "TODO(t)" "IN-PROGRESS(n)" "|" "DONE(d)")
+		(sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "MEETING"))))
+
+  (setq org-todo-keyword-faces
+	(quote (("IN-PROGRESS" :foreground "red" :weight bold)
+		("DONE" :foreground "forest green" :weight bold)
+		("WAITING" :foreground "orange" :weight bold)
+		("HOLD" :foreground "magenta" :weight bold)
+		("CANCELLED" :foreground "forest green" :weight bold)
+		("MEETING" :foreground "forest green" :weight bold)
+		("PHONE" :foreground "forest green" :weight bold))))
+
+
+  (setq org-capture-templates
+	'(("t" "TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	   "* TODO %? %^G \n  %U" :empty-lines 1)
+	  ("s" "Scheduled TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Schedule")
+	   "* TODO %? %^G \nSCHEDULED: %^t\n  %U" :empty-lines 1)
+	  ("d" "Deadline" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	   "* TODO %? %^G \n  DEADLINE: %^t" :empty-lines 1)
+	  ("p" "Priority" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	   "* TODO [#A] %? %^G \n  SCHEDULED: %^t")
+	  ("a" "Appointment" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Appointment")
+	   "* %? %^G \n  %^t")
+	  ("l" "Link" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Link")
+	   "* TODO %a %? %^G\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n")
+	  ("n" "Note" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Notes")
+	   "* %? %^G\n%U" :empty-lines 1)
+	  ("h" "Habit" entry (file "/Users/yaya/Dropbox/org/TODO.org" "Habit")
+	   "* TODO %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
+	  ("j" "Journal" entry (file+datetree "/Users/yaya/Dropbox/org/journal.org")
+	   "* %? %^G\nEntered on %U\n" :empty-lines)))
+
+
+  (defun air-org-skip-subtree-if-habit ()
+    "Skip an agenda entry if it has a STYLE property equal to \"habit\"."
+    (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+      (if (string= (org-entry-get nil "STYLE") "habit")
+	  subtree-end
+	nil)))
+
+  (defun air-org-skip-subtree-if-priority (priority)
+    "Skip an agenda subtree if it has a priority of PRIORITY.
+
+      PRIORITY may be one of the characters ?A, ?B, or ?C."
+    (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+	  (pri-value (* 1000 (- org-lowest-priority priority)))
+	  (pri-current (org-get-priority (thing-at-point 'line t))))
+      (if (= pri-value pri-current)
+	  subtree-end
+	nil)))
+
+  (setq org-agenda-custom-commands
+	'(("d" "Daily agenda and all TODOs"
+	   ((tags "PRIORITY=\"A\""
+		  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+		   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+	    (agenda "" ((org-agenda-span 1)))
+	    (alltodo ""
+		     ((org-agenda-skip-function '(or (air-org-skip-subtree-if-habit)
+						     (air-org-skip-subtree-if-priority ?A)
+						     (org-agenda-skip-if nil '(scheduled deadline))))
+		      (org-agenda-overriding-header "ALL normal priority tasks:"))))
+	   ((org-agenda-compact-blocks t)))))
+
+
+  (defun air-pop-to-org-agenda (&optional split)
+    "Visit the org agenda, in the current window or a SPLIT."
+    (interactive "P")
+    (org-agenda nil "d")
+					;uncomment if want to set a 
+    (when (not split)
+      (delete-other-windows)))
+
+  (global-set-key (kbd "<f3>") 'air-pop-to-org-agenda)
+
+  (defun air-org-agenda-capture (&optional vanilla)
+    "Capture a task in agenda mode, using the date at point.
+
+      If VANILLA is non-nil, run the standard `org-capture'."
+    (interactive "P")
+    (if vanilla
+	(org-capture)
+      (let ((org-overriding-default-time (org-get-cursor-date)))
+	(org-capture nil "t"))))
+
+  ;;(define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+
+
+  :bind
+  ("C-c l" . org-store-link)
+  ("C-c a" . org-agenda)
+  ("C-c c" . org-capture))
+
+    #+END_SRC
+
+    #+RESULTS:
+    : org-capture
+
+*** org features config
+**** org-src 
+     Define src block behaviors 
+
+     #+begin_src emacs-lisp
+
+(use-feature org-src
+  :after org
+  :demand t
+  :config
+  (setq-default org-edit-src-content-indentation 0
+		org-src-preserve-indentation t
+		org-src-fontify-natively t
+		org-src-tab-acts-natively t))    ;; enable src block tab
+     #+end_src
+
+**** ob
+
+     #+begin_src emacs-lisp
+
+(use-feature ob
+  :after org
+  :demand t
+  :config
+  (setq-default org-confirm-babel-evaluate nil
+		org-confirm-elisp-link-function nil
+		org-confirm-shell-link-function nil)
+
+  (dolist (language '((org . t)
+		      (python . t)
+		      (matlab . t)
+		      (shell . t)
+		      (latex . t)))
+    (add-to-list 'org-babel-load-languages language))
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+
+  :hook (org-babel-after-execute . org-display-inline-images))
+
+     #+end_src
+
+**** ox
+     #+begin_src emacs-lisp
+(use-feature ox
+  :after org
+  :demand t
+  :config
+  ;; This is so that we are not queried if bind-keywords are safe when we set
+  ;; org-export-allow-bind to t.
+  (put 'org-export-allow-bind-keywords 'safe-local-variable #'booleanp)
+  (setq org-export-with-sub-superscripts '{}
+	org-export-coding-system 'utf-8
+	org-html-checkbox-type 'html))
+     #+end_src
+**** ox-latex
+     #+begin_src emacs-lisp
+;; Once I reach feature parity with my old Spacemacs setup I should
+;; make these configurations into a dedicated module.
+(use-feature ox-latex
+  :after ox
+  :demand t
+  :init (setq org-latex-pdf-process
+	      '("latexmk -pdflatex='pdflatex -shell-escape -interaction nonstopmode' -pdf -bibtex -f %f"))
+  :config
+
+  ;; Sometimes it's good to locally override these two.
+  (put 'org-latex-title-command 'safe-local-variable #'stringp)
+  (put 'org-latex-toc-command 'safe-local-variable #'stringp)
+
+  ;; Need to let ox know about ipython and jupyter
+  (add-to-list 'org-latex-minted-langs '(ipython "python"))
+  (add-to-list 'org-babel-tangle-lang-exts '("ipython" . "py"))
+  (add-to-list 'org-latex-minted-langs '(jupyter-python "python"))
+  (add-to-list 'org-babel-tangle-lang-exts '("jupyter-python" . "py"))
+
+  ;; Mimore class is a latex class for writing articles.
+  (add-to-list 'org-latex-classes
+	       '("mimore"
+		 "\\documentclass{mimore}
+		   [NO-DEFAULT-PACKAGES]
+		   [PACKAGES]
+		   [EXTRA]"
+		 ("\\section{%s}" . "\\section*{%s}")
+		 ("\\subsection{%s}" . "\\subsection*{%s}")
+		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+		 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+		 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+  ;; Mimosis is a class I used to write my Ph.D. thesis.
+  (add-to-list 'org-latex-classes
+	       '("mimosis"
+		 "\\documentclass{mimosis}
+		   [NO-DEFAULT-PACKAGES]
+		   [PACKAGES]
+		   [EXTRA]
+		  \\newcommand{\\mboxparagraph}[1]{\\paragraph{#1}\\mbox{}\\\\}
+		  \\newcommand{\\mboxsubparagraph}[1]{\\subparagraph{#1}\\mbox{}\\\\}"
+		 ("\\chapter{%s}" . "\\chapter*{%s}")
+		 ("\\section{%s}" . "\\section*{%s}")
+		 ("\\subsection{%s}" . "\\subsection*{%s}")
+		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+		 ("\\mboxparagraph{%s}" . "\\mboxparagraph*{%s}")
+		 ("\\mboxsubparagraph{%s}" . "\\mboxsubparagraph*{%s}")))
+
+  ;; Elsarticle is Elsevier class for publications.
+  (add-to-list 'org-latex-classes
+	       '("elsarticle"
+		 "\\documentclass{elsarticle}
+		   [NO-DEFAULT-PACKAGES]
+		   [PACKAGES]
+		   [EXTRA]"
+		 ("\\section{%s}" . "\\section*{%s}")
+		 ("\\subsection{%s}" . "\\subsection*{%s}")
+		 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+		 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+		 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+  (setq org-latex-prefer-user-labels t))
+     #+end_src
+**** ox-extra
+     #+begin_src emacs-lisp
+;; Feature `ox-extra' is a library from the org-plus-contrib package.
+;; It adds extra keywords and tagging functionality for org export.
+(use-feature ox-extra
+  ;; Demand so that ignore headlines is always active.
+  :demand t
+  :after ox
+  ;; The ignore-headlines allows Org to understand the tag :ignore: and simply
+  ;; remove tagged headings on export, but leave their content in.
+  ;; See my blog post about writing thesis with org mode here:
+  ;; https://write.as/dani/writing-a-phd-thesis-with-org-mode
+  :config (ox-extras-activate '(ignore-headlines)))
+     #+end_src
+**** org-compat
+
+     #+begin_src emacs-lisp
+
+;; Feature `org-compat' is a adapter layer so that org can communicate with other Emacs
+;; built-in packages.
+(use-feature org-compat
+  :demand t
+  :after org
+  :config (setq org-imenu-depth 3))
+
+     #+end_src
+
+**** org-keys
+
+     #+begin_src emacs-lisp
+
+;; Org-keys adds speed keys when cursor is at the beginning of a heading
+(use-feature org-keys
+  :demand t
+  :after org
+  :config (setq org-use-speed-commands t
+		org-speed-commands-user '(("S" . org-store-link))))
+
+     #+end_src
+
+**** org-async
+     #+begin_src emacs-lisp
+(use-package ob-async
+  :disabled t
+  :after ob
+  :config
+  ;; Jupyter defines its own async that conflicts with ob-async.
+  (setq ob-async-no-async-languages-alist '("jupyter-python" "jupyter-julia")))
+     #+end_src
+**** org-brain
+     #+begin_src emacs-lisp
+(use-package org-brain
+  :init
+  (setq org-brain-path "~/org/knowledge")
+  (defun org-brain-insert-resource-icon (link)
+    "Insert an icon, based on content of org-mode LINK."
+    (insert (format "%s "
+		    (cond ((string-prefix-p "http" link)
+			   (cond ((string-match "wikipedia\\.org" link)
+				  (all-the-icons-faicon "wikipedia-w"))
+				 ((string-match "github\\.com" link)
+				  (all-the-icons-octicon "mark-github"))
+				 ((string-match "vimeo\\.com" link)
+				  (all-the-icons-faicon "vimeo"))
+				 ((string-match "youtube\\.com" link)
+				  (all-the-icons-faicon "youtube"))
+				 ((string-match "imdb\\.com" link)
+				  (all-the-icons-material "movie"))
+				 (t
+				  (all-the-icons-faicon "globe"))))
+			  ((string-prefix-p "brain:" link)
+			   (all-the-icons-fileicon "brain"))
+			  ((string-prefix-p "cite:" link)
+			   (all-the-icons-material "book"))
+			  ((string-prefix-p "parencite:" link)
+			   (all-the-icons-material "book"))
+			  (t
+			   (all-the-icons-icon-for-file link))))))
+
+  :config
+  (setq org-id-track-globally t)
+  (setq org-id-locations-file "~/.emacs.d/.org-id-locations")
+  (setq org-brain-visualize-default-choices 'all)
+  (setq org-brain-title-max-length 100)
+
+  (defun org-brain-open-org-noter (entry)
+    "Open `org-noter' on the ENTRY.
+      If run interactively, get ENTRY from context."
+    (interactive (list (org-brain-entry-at-pt)))
+    (org-with-point-at (org-brain-entry-marker entry)
+      (org-noter)))
+
+  :commands org-brain-visualize
+
+  :bind (:map org-brain-visualize-mode-map
+	 ("C-c n" . org-brain-open-org-noter))
+
+  :hook
+  (org-brain-visualize-mode . visual-line-mode)
+  (org-brain-after-resource-button-functions . org-brain-insert-resource-icon))
+     #+end_src
+**** org-cliplink
+     #+begin_src emacs-lisp
+(use-package org-cliplink
+  :defer 5
+  :after org)
+     #+end_src
+**** org-noter
+
+     #+begin_src emacs-lisp
+(use-package org-noter
+  :after org
+  :commands org-noter
+  :config (setq org-noter-default-notes-file-names nil
+		;; org-noter-always-create-frame nil
+		org-noter-notes-search-path '("~/org/Research-Notes")
+		org-noter-separate-notes-from-heading t))
+     #+end_src
+**** org-download
+     #+begin_src emacs-lisp
+
+;; Package org-download allows drag and drop of images directly into Emacs org-mode.
+(use-package org-download
+  :after org
+  :demand t
+
+  :commands (org-download-enable
+	     org-download-yank
+	     org-download-screenshot)
+
+  :init
+  (setq-default org-download-image-dir "./img")
+  (setq org-download-screenshot-method "screencapture -i %s")
+  ;; make drag-and-drop image save in the same name folder as org file
+  ;; ex: `aa-bb-cc.org' then save image test.png to `aa-bb-cc/test.png'
+
+  (defun my-org-download-method (link)
+    (let ((filename
+	   (file-name-nondirectory
+	    (car (url-path-and-query
+		  (url-generic-parse-url link)))))
+	  (dirname (file-name-sans-extension (buffer-name)) ))
+      ;; if directory not exist, create it
+      (unless (file-exists-p dirname)
+	(make-directory dirname))
+      ;; return the path to save the download files
+      (expand-file-name filename dirname)))
+
+  ;; only modify `org-download-method' in this project
+  (setq-local org-download-method 'my-org-download-method)
+
+ 
+  :hook ((org-mode dired-mode) . org-download-enable))
+
+     #+end_src
+
+*** org-ref
+
+
+    #+BEGIN_SRC emacs-lisp 
+(use-package org-ref
+  :after org
+  :config
+  (progn
+    (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib"))
+
+    ;; see org-ref for use of these variables
+    (setq org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
+	  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
+	  org-ref-pdf-directory "~/Dropbox/bibliography/bibtex-pdfs/")))
+    #+END_SRC
+
+*** org-pdf 
+
+    #+begin_src emacs-lisp
+(setq image-file-name-extensions
+   (quote
+    ("png" "jpeg" "jpg" "gif" "tiff" "tif" "xbm" "xpm" "pbm" "pgm" "ppm" "pnm" "svg" "pdf" "bmp")))
+
+(setq org-image-actual-width 600)
+
+(setq org-imagemagick-display-command "convert -density 600 \"%s\" -thumbnail \"%sx%s>\" \"%s\"")
+(defun org-display-inline-images (&optional include-linked refresh beg end)
+  "Display inline images.
+Normally only links without a description part are inlined, because this
+is how it will work for export.  When INCLUDE-LINKED is set, also links
+with a description part will be inlined.  This
+can be nice for a quick
+look at those images, but it does not reflect what exported files will look
+like.
+When REFRESH is set, refresh existing images between BEG and END.
+This will create new image displays only if necessary.
+BEG and END default to the buffer boundaries."
+  (interactive "P")
+  (unless refresh
+    (org-remove-inline-images)
+    (if (fboundp 'clear-image-cache) (clear-image-cache)))
+  (save-excursion
+    (save-restriction
+      (widen)
+      (setq beg (or beg (point-min)) end (or end (point-max)))
+      (goto-char beg)
+      (let ((re (concat "\\[\\[\\(\\(file:\\)\\|\\([./~]\\)\\)\\([^]\n]+?"
+                        (substring (org-image-file-name-regexp) 0 -2)
+                        "\\)\\]" (if include-linked "" "\\]")))
+            old file ov img)
+        (while (re-search-forward re end t)
+          (setq old (get-char-property-and-overlay (match-beginning 1)
+                                                   'org-image-overlay)
+        file (expand-file-name
+                      (concat (or (match-string 3) "") (match-string 4))))
+          (when (file-exists-p file)
+            (let ((file-thumb (format "%s%s_thumb.png" (file-name-directory file) (file-name-base file))))
+              (if (file-exists-p file-thumb)
+                  (let ((thumb-time (nth 5 (file-attributes file-thumb 'string)))
+                        (file-time (nth 5 (file-attributes file 'string))))
+                    (if (time-less-p thumb-time file-time)
+            (shell-command (format org-imagemagick-display-command
+                           file org-image-actual-width org-image-actual-width file-thumb) nil nil)))
+                (shell-command (format org-imagemagick-display-command
+                                         file org-image-actual-width org-image-actual-width file-thumb) nil nil))
+              (if (and (car-safe old) refresh)
+                  (image-refresh (overlay-get (cdr old) 'display))
+                (setq img (save-match-data (create-image file-thumb)))
+                (when img
+                  (setq ov (make-overlay (match-beginning 0) (match-end 0)))
+                  (overlay-put ov 'display img)
+                  (overlay-put ov 'face 'default)
+                  (overlay-put ov 'org-image-overlay t)
+                  (overlay-put ov 'modification-hooks
+                               (list 'org-display-inline-remove-overlay))
+                  (push ov org-inline-image-overlays))))))))))
+    
+    #+end_src
+** latex
+*** auctex
+    #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package tex
+  :straight auctex
+  :mode (".tex\\'" . LaTeX-mode)
+  :config
+  (progn
+    (add-hook 'LaTeX-mode-hook 'turn-on-auto-fill)
+    (add-hook 'LaTeX-mode-hook 'visual-line-mode)
+    (setq TeX-save-query nil)
+    (setq TeX-view-program-selection
+	  (quote
+	   (((output-dvi has-no-display-manager)
+	     "dvi2tty")
+	    ((output-dvi style-pstricks)
+	     "dvips and gv")
+	    (output-dvi "xdvi")
+	    (output-pdf "PDF Tools")
+	    (output-html "xdg-open"))))
+    (setq TeX-auto-save t
+	  TeX-parse-self t
+	  TeX-syntactic-comment t
+	  ;; Synctex support
+	  TeX-source-correlate-start-server nil
+	  ;; Don't insert line-break at inline math
+	  LaTeX-fill-break-at-separators nil)
+    (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+    (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
+    (add-hook 'LaTeX-mode-hook 'TeX-PDF-mode)
+    (add-hook 'LaTeX-mode-hook (lambda() (setq-local display-line-numbers-type 'relative)))))
+    #+END_SRC
+
+
+*** scimax-latex
+    #+begin_src emacs-lisp
+(use-package scimax-latex
+  :straight (scimax-latex :type git
+			  :host github
+			  :repo "jkitchin/scimax"
+			  :files ("scimax-latex.el"))
+  :commands (scimax-latex-setup
+	     kpsewhich
+	     texdoc))
+    #+end_src
+** yaml
+   
+   #+BEGIN_SRC emacs-lisp
+(use-package yaml-mode
+  :commands yaml-mode
+  :mode (("\\.\\(yml\\|yaml\\)\\'" . yaml-mode)
+	 ("Procfile\\'" . yaml-mode))
+  :config (add-hook 'yaml-mode-hook
+		    '(lambda ()
+		       (define-key yaml-mode-map "\C-m" 'newline-and-indent))))
+   #+END_SRC
+
+* tools 
+** ranger
+
+   #+BEGIN_SRC emacs-lisp
+
+(use-package ranger)
+(defalias 'ar 'ranger)
+(defalias 'ad 'deer)
+;;  :config
+;;  (my/motion-keys
+;;    :keymaps 'ranger-mode-map
+;;    "M-g" 'ranger-go
+;;    "gg" 'ranger-goto-top))
+
+   #+END_SRC
+
+
