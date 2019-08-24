@@ -12,6 +12,58 @@
 
   Mainly learned/stolen by this inspiring init file https://github.com/dangom/emacs.d
 
+* Table of Contents                                                   :TOC_3:
+- [[#about][About]]
+- [[#initial][initial]]
+  - [[#lexical-binding][lexical binding]]
+  - [[#setting-up-auto-tangle][setting up auto tangle]]
+  - [[#start-time][start time]]
+  - [[#dont-gc-during-startup-to-save-time][don't GC during startup to save time]]
+  - [[#setting-custom-file][setting custom file]]
+- [[#package-related][package related]]
+  - [[#bootstrap-straight][bootstrap straight]]
+  - [[#minimal-packageel-config][minimal package.el config]]
+  - [[#use-feature][use-feature]]
+  - [[#hydra][hydra]]
+  - [[#general][general]]
+  - [[#try][try]]
+- [[#defaults][defaults]]
+  - [[#settings-related-to-built-in-features][settings related to built-in features]]
+- [[#ui][UI]]
+  - [[#gui-frame][GUI frame]]
+  - [[#highlight-parentheses][highlight parentheses]]
+- [[#universal][universal]]
+  - [[#restart-emacs][restart-emacs]]
+- [[#theme][theme]]
+    - [[#grubox-theme][grubox-theme]]
+    - [[#zenburn][zenburn]]
+- [[#source-control][source control]]
+  - [[#git][git]]
+    - [[#magit][magit]]
+- [[#completion][completion]]
+  - [[#helm-related][helm related]]
+    - [[#helm][helm]]
+    - [[#helm-org-rifile][helm org rifile]]
+  - [[#company-related][company related]]
+- [[#encryption][Encryption]]
+  - [[#epa-file][epa-file]]
+- [[#language][Language]]
+  - [[#org-related][Org related]]
+    - [[#org-mode][org mode]]
+    - [[#org-refile][org refile]]
+    - [[#org-version][org version]]
+    - [[#org-features-config][org features config]]
+    - [[#org-ref][org-ref]]
+    - [[#org-pdf][org-pdf]]
+  - [[#latex][latex]]
+    - [[#auctex][auctex]]
+    - [[#scimax-latex][scimax-latex]]
+  - [[#c][c++]]
+  - [[#yaml][yaml]]
+- [[#tools][tools]]
+  - [[#ranger][ranger]]
+  - [[#toc-org][toc org]]
+
 * initial
 ** lexical binding
    #+BEGIN_SRC emacs-lisp
@@ -138,21 +190,21 @@
    #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package hydra)
 ;; :config
-  ;(setq hydra-hint-display-type 'my/posframe)
-  ;(defun my/hydra-posframe-show (str)
-  ;  (require 'posframe)
-  ;  (posframe-show
-  ;   " *hydra-posframe*"
-  ;   :string str
-  ;   :point (point)
-  ;   :internal-border-color "gray50"
-  ;   :internal-border-width 2
-  ;   :poshandler #'posframe-poshandler-frame-top-center)))
-  ;(defun my/hydra-posframe-hide ()
-  ;  (posframe-hide " *hydra-posframe*")))
-  ;;(setq hydra-hint-display-alist
-  ;;	(list (list 'my/posframe #'my/hydra-posframe-show #'my/hydra-posframe-hide))
-  ;;	hydra--work-around-dedicated nil))
+					;(setq hydra-hint-display-type 'my/posframe)
+					;(defun my/hydra-posframe-show (str)
+					;  (require 'posframe)
+					;  (posframe-show
+					;   " *hydra-posframe*"
+					;   :string str
+					;   :point (point)
+					;   :internal-border-color "gray50"
+					;   :internal-border-width 2
+					;   :poshandler #'posframe-poshandler-frame-top-center)))
+					;(defun my/hydra-posframe-hide ()
+					;  (posframe-hide " *hydra-posframe*")))
+;;(setq hydra-hint-display-alist
+;;	(list (list 'my/posframe #'my/hydra-posframe-show #'my/hydra-posframe-hide))
+;;	hydra--work-around-dedicated nil))
    #+END_SRC
 
 ** general
@@ -450,6 +502,14 @@
   (set-face-attribute 'hl-paren-face nil :weight 'ultra-bold))
    #+END_SRC
 
+* universal
+** restart-emacs
+   #+BEGIN_SRC emacs-lisp
+(use-package restart-emacs
+  :config
+  (setq restart-emacs-restore-frame t)
+  (defalias 'qr 'restart-emacs))
+   #+END_SRC
 * theme
   *Could switch theme function*
 *** grubox-theme
@@ -470,37 +530,162 @@
 * source control 
 ** git 
 *** magit   
-#+BEGIN_SRC emacs-lisp
-  (use-package magit
-    :commands (magit-status magit-init)
-    :general
-    (:keymaps 'magit-mode-map
-     "0" nil
-     "1" nil
-     "2" nil
-     "3" nil
-     "4" nil)
-    (my/leader-keys
-      "gc"  'magit-clone
-      "gff" 'magit-find-file
-      "gfl" 'magit-log-buffer-file
-      "gfd" 'magit-diff-buffer-file-popup
-      "gi"  'magit-init
-      "gL"  'magit-list-repositories
-      "gm"  'magit-dispatch-popup
-      "gs"  'magit-status
-      "gS"  'magit-stage-file
-      "gU"  'magit-unstage-file)
-    (:keymaps 'magit-hunk-section-map
-     "RET" 'magit-diff-visit-file-other-window)
-    :init
-    (add-hook 'magit-popup-mode-hook (lambda () (display-line-numbers-mode -1)))
-    (add-hook 'magit-status-mode-hook (lambda () (display-line-numbers-mode 1)))
-    :config
-    (setq transient-display-buffer-action '(display-buffer-below-selected)
-	  magit-completing-read-function #'ivy-completing-read))
-#+END_SRC
+    #+BEGIN_SRC emacs-lisp
+(use-package magit
+  :commands (magit-status magit-init)
+  :general
+  (:keymaps 'magit-mode-map
+   "0" nil
+   "1" nil
+   "2" nil
+   "3" nil
+   "4" nil)
+  (my/leader-keys
+    "gc"  'magit-clone
+    "gff" 'magit-find-file
+    "gfl" 'magit-log-buffer-file
+    "gfd" 'magit-diff-buffer-file-popup
+    "gi"  'magit-init
+    "gL"  'magit-list-repositories
+    "gm"  'magit-dispatch-popup
+    "gs"  'magit-status
+    "gS"  'magit-stage-file
+    "gU"  'magit-unstage-file)
+  (:keymaps 'magit-hunk-section-map
+   "RET" 'magit-diff-visit-file-other-window)
+  :init
+  (add-hook 'magit-popup-mode-hook (lambda () (display-line-numbers-mode -1)))
+  (add-hook 'magit-status-mode-hook (lambda () (display-line-numbers-mode 1)))
+  (global-set-key (kbd "C-x g") 'magit-status)
+  :config
+  (setq transient-display-buffer-action '(display-buffer-below-selected)
+	magit-completing-read-function #'ivy-completing-read))
 
+
+    #+END_SRC
+
+* completion
+** helm related 
+*** helm
+    #+BEGIN_SRC emacs-lisp 
+(use-package helm
+  :commands helm-mode
+  :init
+  (progn
+    (with-eval-after-load 'helm
+      (global-set-key (kbd "M-x") #'helm-M-x)
+      (define-key helm-map (kbd "C-j") 'helm-next-line)
+      (define-key helm-map (kbd "C-k") 'helm-previous-line)
+      (define-key helm-map (kbd "C-S-j") 'helm-follow-action-forward)
+      (define-key helm-map (kbd "C-S-k") 'helm-follow-action-backward)
+      (define-key helm-map (kbd "C-h") 'helm-next-source)
+      (define-key helm-map (kbd "C-S-h") 'describe-key)
+      (define-key helm-map (kbd "C-l") (kbd "RET")))
+    (with-eval-after-load 'helm-files
+      (dolist (keymap (list helm-find-files-map helm-read-file-map))
+	(define-key keymap (kbd "C-l") 'helm-execute-persistent-action)
+	(define-key keymap (kbd "C-h") 'helm-find-files-up-one-level)
+	;; rebind `describe-key' for convenience
+	(define-key keymap (kbd "C-S-h") 'describe-key)))
+    :config
+    (progn
+      (custom-set-faces '(helm-action ((t (:foreground "dark sea green" :underline nil)))) )
+      (setq helm-split-window-inside-p t
+	    helm-echo-input-in-header-line t
+	    helm-autoresize-min-height 20
+	    helm-autoresize-max-height 0
+	    helm-mode-fuzzy-match t
+	    helm-completion-in-region-fuzzy-match t)
+      (setq helm-boring-buffer-regexp-list 
+	    (list 
+	     (rx "*magit-") 
+	     (rx "*helm") 
+	     (rx "*Completions*") 
+	     (rx "*Buffer List*")
+	     (rx "*inferior-lisp*")
+	     (rx "*Fuzzy Completions*")
+	     (rx "*Apropos*")
+	     (rx "*Help*")
+	     (rx "*cvs*")
+	     (rx "*Ibuffer*")
+	     (rx "*esh command on file*")
+	     (rx "*Youdao Dictionary*")))
+
+      (helm-mode)
+      (helm-autoresize-mode))))
+    #+END_SRC
+
+*** helm org rifile
+    #+BEGIN_SRC emacs-lisp 
+(use-package helm-org-rifle
+  :commands (helm-org-rifle-agenda-files
+	     helm-org-rifle-occur-agenda-files))
+    #+END_SRC
+** company related
+   #+BEGIN_SRC emacs-lisp
+(use-package company
+  :diminish company-mode
+  :init
+  (progn
+    (add-hook 'after-init-hook 'global-company-mode))
+  :config
+  (progn
+    (let ((map company-active-map))
+      (define-key map (kbd "C-j") 'company-select-next)
+      (define-key map (kbd "C-k") 'company-select-previous)
+      (define-key map (kbd "C-l") 'company-complete-selection))
+    (setq company-idle-delay 0
+	  company-show-numbers t
+	  company-tooltip-idle-delay 0
+	  company-minimum-prefix-length 2
+	  company-tooltip-align-annotations t
+	  company-dabbrev-ignore-case nil
+	  company-dabbrev-downcase nil
+	  company-ispell-dictionary (file-truename "~/.emacs.d/dict/words_alpha.txt")
+	  ispell-alternate-dictionary (file-truename "~/.emacs.d/dict/words_alpha.txt")
+	  company-transformers '(company-sort-by-backend-importance)
+	  company-dabbrev-code-other-buffers 'code
+	  company-dabbrev-ignore-case nil
+	  company-dabbrev-downcase nil
+	  company-dabbrev-code-time-limit 5
+	  company-dabbrev-code-modes '(python-mode inferior-python-mode)
+	  company-backends '(company-capf
+			     company-dabbrev-code
+			     company-keywords
+			     company-files
+			     company-ispell
+			     company-yasnippet
+			     company-abbrev))
+    (push (apply-partially #'cl-remove-if
+			   (lambda (c)
+			     (or (string-match-p "[^\x00-\x7F]+" c)
+				 (string-match-p "[0-9]+" c)
+				 (string-match-p "__.*__" c)
+				 )))
+	  company-transformers)
+    (defun ora-company-number ()
+      "Forward to `company-complete-number'.
+  Unless the number is potentially part of the candidate.
+  In that case, insert the number."
+      (interactive)
+      (let* ((k (this-command-keys))
+	     (re (concat "^" company-prefix k)))
+	(if (cl-find-if (lambda (s) (string-match re s))
+			company-candidates)
+	    (self-insert-command 1)
+	  (company-complete-number (string-to-number k)))))
+    (let ((map company-active-map))
+      (mapc
+       (lambda (x)
+	 (define-key map (format "%d" x) 'ora-company-number
+	   ))
+       (number-sequence 0 9))
+      (define-key map " " (lambda ()
+			    (interactive)
+			    (company-abort)
+			    (self-insert-command 1)))
+      (define-key map (kbd "<return>") nil))))
+   #+END_SRC
 * Encryption
 ** epa-file
    #+BEGIN_SRC emacs-lisp
@@ -526,6 +711,8 @@
   (setq org-confirm-babel-evaluate nil)
   (setq org-use-fast-todo-selection t)
   (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+  (setq org-agenda-default-appointment-duration 60)
+  (setq time-zone-rule "GMT-8")
 
 
   (setq org-agenda-files '("~/Dropbox/org/"))
@@ -536,37 +723,42 @@
   ;; Set to <your Dropbox root directory>/MobileOrg.
   (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
 
+
   (setq org-todo-keywords
 	(quote ((sequence "TODO(t)" "IN-PROGRESS(n)" "|" "DONE(d)")
 		(sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "MEETING"))))
 
+  (setq org-agenda-files (apply 'append
+				(mapcar
+				 (lambda (directory)
+				   (directory-files-recursively
+				    directory org-agenda-file-regexp))
+				 '("~/Dropbox/org/" ))))
+
+
   (setq org-todo-keyword-faces
-	(quote (("IN-PROGRESS" :foreground "red" :weight bold)
+	(quote (("IN-PROGRESS" :foreground "orange" :weight bold)
 		("DONE" :foreground "forest green" :weight bold)
-		("WAITING" :foreground "orange" :weight bold)
+		("WAITING" :foreground "red" :weight bold)
 		("HOLD" :foreground "magenta" :weight bold)
 		("CANCELLED" :foreground "forest green" :weight bold)
-		("MEETING" :foreground "forest green" :weight bold)
-		("PHONE" :foreground "forest green" :weight bold))))
+		("MEETING" :foreground "forest green" :weight bold))))
 
+  ;;setting up capture
+  (setq org-default-notes-file (concat org-directory "/capture/capture.org"))
+					; Targets include this file and any file contributing to the agenda - up to 9 levels deep
 
   (setq org-capture-templates
-	'(("t" "TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	'(("t" "TODO" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  %U" :empty-lines 1)
-	  ("s" "Scheduled TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Schedule")
+	  ("s" "Scheduled TODO" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Schedule")
 	   "* TODO %? %^G \nSCHEDULED: %^t\n  %U" :empty-lines 1)
-	  ("d" "Deadline" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	  ("d" "Deadline" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  DEADLINE: %^t" :empty-lines 1)
-	  ("p" "Priority" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
-	   "* TODO [#A] %? %^G \n  SCHEDULED: %^t")
-	  ("a" "Appointment" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Appointment")
+	  ("a" "Appointment" entry (file+headline "/Users/yaya/Dropbox/org/appts/appts.org" "")
 	   "* %? %^G \n  %^t")
-	  ("l" "Link" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Link")
-	   "* TODO %a %? %^G\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n")
-	  ("n" "Note" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Notes")
+	  ("n" "Note" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Notes")
 	   "* %? %^G\n%U" :empty-lines 1)
-	  ("h" "Habit" entry (file "/Users/yaya/Dropbox/org/TODO.org" "Habit")
-	   "* TODO %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
 	  ("j" "Journal" entry (file+datetree "/Users/yaya/Dropbox/org/journal.org")
 	   "* %? %^G\nEntered on %U\n" :empty-lines)))
 
@@ -624,18 +816,107 @@
 	(org-capture nil "t"))))
 
   ;;(define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+    #+end_src
+
+*** org refile
+
+    #+begin_src emacs-lisp
+
+;; set org refile
+(setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+(setq org-refile-use-outline-path 'file)
+(setq org-outline-path-complete-in-steps nil)
+(setq org-refile-allow-creating-parent-nodes 'confirm)
+
+(defun my/refile (file headline &optional arg)
+  (let ((pos (save-excursion
+               (find-file file)
+               (org-find-exact-headline-in-buffer headline))))
+    (org-refile arg nil (list headline file nil pos)))
+  (switch-to-buffer (current-buffer)))
+
+(defmacro josh/make-org-refile-hydra (hydraname file keyandheadline)
+  "Make a hydra named HYDRANAME with refile targets to FILE.
+KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\")"
+  `(defhydra ,hydraname (:color blue :after-exit (josh/org-refile-hydra/body))
+     ,file
+     ,@(cl-loop for kv in keyandheadline
+		collect (list (car kv) (list 'my/refile file (cdr kv)) (cdr kv)))
+     ("q" nil "cancel")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-a
+			    "~/Dropbox/org/projects/HGCal/MAC.org"
+			    (("1" . "General")
+			     ("2" . "Tooling")
+			     ("3" . "rpi")
+			     ("4" . "t-pcb module assembly")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-b
+			    "~/Dropbox/org/life/daily.org"
+			    (("1" . "General")
+			     ("2" . "habits")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-c
+			    "~/Dropbox/org/projects/Emacs/EmacsCool.org"
+			    (("1" . "General")
+			     ("2" . "Org")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-d
+			    "~/Dropbox/org/projects/HGCal/TestBeam.org"
+			    (("1" . "General")
+			     ("2" . "Cross Talk")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-e
+			    "~/Dropbox/org/projects/Learning/coding.org"
+			    (("1" . "linux")
+			     ("2" . "c++")
+			     ("3" . "python")
+			     ("4" . "git")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-f
+			    "~/Dropbox/org/projects/Learning/Alibava.org"
+			    (("1" . "General")
+			     ("2" . "laser")
+			     ("3" . "cosmic")))
 
 
-  :bind
-  ("C-c l" . org-store-link)
-  ("C-c a" . org-agenda)
-  ("C-c c" . org-capture))
+(defhydra josh/org-refile-hydra (:foreign-keys run) 
+  "Refile"
+  ("1" josh/org-refile-hydra-file-a/body "MAC" :exit t)
+  ("2" josh/org-refile-hydra-file-b/body "daily" :exit t)
+  ("3" josh/org-refile-hydra-file-c/body "emacs" :exit t)
+  ("4" josh/org-refile-hydra-file-d/body "testbeam" :exit t)
+  ("5" josh/org-refile-hydra-file-e/body "code" :exit t)
+  ("6" josh/org-refile-hydra-file-f/body "alibava" :exit t)
+  ("q" nil "cancel"))
+
+:bind
+("C-c l" . org-store-link)
+("C-c a" . org-agenda)
+("C-c c" . org-capture))
 
     #+END_SRC
 
     #+RESULTS:
     : org-capture
 
+*** org version 
+    #+begin_src emacs-lisp :tangle no
+(require 'git)
+(require 'f)
+(require 's)
+
+(defun the-org-git-version ()
+  (let ((git-repo
+	 (f-join user-emacs-directory "straight/repos/org")))
+    (s-trim (git-run "describe"
+		     "--match=release\*"
+		     "--abbrev=6"
+		     "HEAD"))))
+
+(defun the-org-release ()
+  (let ((git-repo
+	 (f-join user-emacs-directory "straight/repos/org")))
+    (s-trim (s-chop-prefix "release_"
+			   (git-run "describe"
+				    "--match=release\*"
+				    "--abbrev=0"
+				    "HEAD")))))
+    #+end_src
 *** org features config
 **** org-src 
      Define src block behaviors 
@@ -905,7 +1186,7 @@
   ;; only modify `org-download-method' in this project
   (setq-local org-download-method 'my-org-download-method)
 
- 
+  
   :hook ((org-mode dired-mode) . org-download-enable))
 
      #+end_src
@@ -930,8 +1211,8 @@
 
     #+begin_src emacs-lisp
 (setq image-file-name-extensions
-   (quote
-    ("png" "jpeg" "jpg" "gif" "tiff" "tif" "xbm" "xpm" "pbm" "pgm" "ppm" "pnm" "svg" "pdf" "bmp")))
+      (quote
+       ("png" "jpeg" "jpg" "gif" "tiff" "tif" "xbm" "xpm" "pbm" "pgm" "ppm" "pnm" "svg" "pdf" "bmp")))
 
 (setq org-image-actual-width 600)
 
@@ -963,7 +1244,7 @@ BEG and END default to the buffer boundaries."
         (while (re-search-forward re end t)
           (setq old (get-char-property-and-overlay (match-beginning 1)
                                                    'org-image-overlay)
-        file (expand-file-name
+		file (expand-file-name
                       (concat (or (match-string 3) "") (match-string 4))))
           (when (file-exists-p file)
             (let ((file-thumb (format "%s%s_thumb.png" (file-name-directory file) (file-name-base file))))
@@ -971,10 +1252,10 @@ BEG and END default to the buffer boundaries."
                   (let ((thumb-time (nth 5 (file-attributes file-thumb 'string)))
                         (file-time (nth 5 (file-attributes file 'string))))
                     (if (time-less-p thumb-time file-time)
-            (shell-command (format org-imagemagick-display-command
-                           file org-image-actual-width org-image-actual-width file-thumb) nil nil)))
+			(shell-command (format org-imagemagick-display-command
+					       file org-image-actual-width org-image-actual-width file-thumb) nil nil)))
                 (shell-command (format org-imagemagick-display-command
-                                         file org-image-actual-width org-image-actual-width file-thumb) nil nil))
+				       file org-image-actual-width org-image-actual-width file-thumb) nil nil))
               (if (and (car-safe old) refresh)
                   (image-refresh (overlay-get (cdr old) 'display))
                 (setq img (save-match-data (create-image file-thumb)))
@@ -986,7 +1267,7 @@ BEG and END default to the buffer boundaries."
                   (overlay-put ov 'modification-hooks
                                (list 'org-display-inline-remove-overlay))
                   (push ov org-inline-image-overlays))))))))))
-    
+
     #+end_src
 ** latex
 *** auctex
@@ -1033,6 +1314,11 @@ BEG and END default to the buffer boundaries."
 	     kpsewhich
 	     texdoc))
     #+end_src
+** c++
+   #+begin_src emacs-lisp
+(setq c-default-style "linux"
+      c-basic-offset 4)
+   #+end_src
 ** yaml
    
    #+BEGIN_SRC emacs-lisp
@@ -1062,3 +1348,8 @@ BEG and END default to the buffer boundaries."
    #+END_SRC
 
 
+** toc org
+   #+BEGIN_SRC emacs-lisp
+(use-package toc-org
+  :ghook ('org-mode-hook))
+   #+END_SRC
