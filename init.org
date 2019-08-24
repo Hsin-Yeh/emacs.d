@@ -453,7 +453,7 @@
 ;; frequently accessed files 
 (defhydra hydra-frequently-accessed-files (:exit t)
   "files"
-  ("n" (lambda () (interactive) (find-file "~/Dropbox/org/Note.org")) "Note.org")
+  ("n" (lambda () (interactive) (find-file "~/Documents/org/Note.org")) "Note.org")
   ("i" (lambda () (interactive) (find-file "~/.emacs.d/init.org")) "init.org")
   ("h" (lambda () (interactive) (deer "~/Documents/HEP/HGCal/TestBeam/")) "HGCal")
   ("q" nil "quit"))
@@ -715,12 +715,12 @@
   (setq time-zone-rule "GMT-8")
 
 
-  (setq org-agenda-files '("~/Dropbox/org/"))
+  (setq org-agenda-files '("~/Documents/org/"))
   ;; Set to the location of your Org files on your local system
-  (setq org-directory "~/Dropbox/org")
+  (setq org-directory "~/Documents/org")
   ;; Set to the name of the file where new notes will be stored
-  (setq org-mobile-inbox-for-pull "~/Dropbox/flagged.org")
-  ;; Set to <your Dropbox root directory>/MobileOrg.
+  (setq org-mobile-inbox-for-pull "~/Documents/flagged.org")
+  ;; Set to <your Document root directory>/MobileOrg.
   (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
 
 
@@ -733,7 +733,7 @@
 				 (lambda (directory)
 				   (directory-files-recursively
 				    directory org-agenda-file-regexp))
-				 '("~/Dropbox/org/" ))))
+				 '("~/Documents/org/" ))))
 
 
   (setq org-todo-keyword-faces
@@ -749,17 +749,17 @@
 					; Targets include this file and any file contributing to the agenda - up to 9 levels deep
 
   (setq org-capture-templates
-	'(("t" "TODO" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Todo")
+	'(("t" "TODO" entry (file+headline "~/Documents/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  %U" :empty-lines 1)
-	  ("s" "Scheduled TODO" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Schedule")
+	  ("s" "Scheduled TODO" entry (file+headline "~/Documents/org/capture/capture.org" "Schedule")
 	   "* TODO %? %^G \nSCHEDULED: %^t\n  %U" :empty-lines 1)
-	  ("d" "Deadline" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Todo")
+	  ("d" "Deadline" entry (file+headline "~/Documents/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  DEADLINE: %^t" :empty-lines 1)
-	  ("a" "Appointment" entry (file+headline "/Users/yaya/Dropbox/org/appts/appts.org" "")
+	  ("a" "Appointment" entry (file+headline "~/Documents/org/appts/appts.org" "")
 	   "* %? %^G \n  %^t")
-	  ("n" "Note" entry (file+headline "/Users/yaya/Dropbox/org/capture/capture.org" "Notes")
+	  ("n" "Note" entry (file+headline "~/Documents/org/capture/capture.org" "Notes")
 	   "* %? %^G\n%U" :empty-lines 1)
-	  ("j" "Journal" entry (file+datetree "/Users/yaya/Dropbox/org/journal.org")
+	  ("j" "Journal" entry (file+datetree "~/Documents/org/journal.org")
 	   "* %? %^G\nEntered on %U\n" :empty-lines)))
 
 
@@ -844,31 +844,31 @@ KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\
 		collect (list (car kv) (list 'my/refile file (cdr kv)) (cdr kv)))
      ("q" nil "cancel")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-a
-			    "~/Dropbox/org/projects/HGCal/MAC.org"
+			    "~/Documents/org/projects/HGCal/MAC.org"
 			    (("1" . "General")
 			     ("2" . "Tooling")
 			     ("3" . "rpi")
 			     ("4" . "t-pcb module assembly")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-b
-			    "~/Dropbox/org/life/daily.org"
+			    "~/Documents/org/life/daily.org"
 			    (("1" . "General")
 			     ("2" . "habits")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-c
-			    "~/Dropbox/org/projects/Emacs/EmacsCool.org"
+			    "~/Documents/org/projects/Emacs/EmacsCool.org"
 			    (("1" . "General")
 			     ("2" . "Org")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-d
-			    "~/Dropbox/org/projects/HGCal/TestBeam.org"
+			    "~/Documents/org/projects/HGCal/TestBeam.org"
 			    (("1" . "General")
 			     ("2" . "Cross Talk")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-e
-			    "~/Dropbox/org/projects/Learning/coding.org"
+			    "~/Documents/org/projects/Learning/coding.org"
 			    (("1" . "linux")
 			     ("2" . "c++")
 			     ("3" . "python")
 			     ("4" . "git")))
 (josh/make-org-refile-hydra josh/org-refile-hydra-file-f
-			    "~/Dropbox/org/projects/Learning/Alibava.org"
+			    "~/Documents/org/projects/Learning/Alibava.org"
 			    (("1" . "General")
 			     ("2" . "laser")
 			     ("3" . "cosmic")))
@@ -1199,12 +1199,12 @@ KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\
   :after org
   :config
   (progn
-    (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib"))
+    (setq reftex-default-bibliography '("~/Documents/bibliography/references.bib"))
 
     ;; see org-ref for use of these variables
-    (setq org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
-	  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
-	  org-ref-pdf-directory "~/Dropbox/bibliography/bibtex-pdfs/")))
+    (setq org-ref-bibliography-notes "~/Documents/bibliography/notes.org"
+	  org-ref-default-bibliography '("~/Documents/bibliography/references.bib")
+	  org-ref-pdf-directory "~/Documents/bibliography/bibtex-pdfs/")))
     #+END_SRC
 
 *** org-pdf 
