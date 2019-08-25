@@ -45,6 +45,7 @@
     - [[#helm][helm]]
     - [[#helm-projectile][helm projectile]]
     - [[#helm-org-rifile][helm org rifile]]
+    - [[#helm-bibtex][helm bibtex]]
   - [[#company-related][company related]]
 - [[#encryption][Encryption]]
   - [[#epa-file][epa-file]]
@@ -571,67 +572,41 @@
 *** helm
     #+BEGIN_SRC emacs-lisp 
 (use-package helm
-  :commands helm-mode
-  :init
-  (progn
-    (with-eval-after-load 'helm
-      (global-set-key (kbd "M-x") #'helm-M-x)
-      (define-key helm-map (kbd "C-j") 'helm-next-line)
-      (define-key helm-map (kbd "C-k") 'helm-previous-line)
-      (define-key helm-map (kbd "C-S-j") 'helm-follow-action-forward)
-      (define-key helm-map (kbd "C-S-k") 'helm-follow-action-backward)
-      (define-key helm-map (kbd "C-h") 'helm-next-source)
-      (define-key helm-map (kbd "C-S-h") 'describe-key)
-      (define-key helm-map (kbd "C-l") (kbd "RET"))
-      (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
-      (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)
-      (define-key helm-map (kbd "C-z")  'helm-select-action))
-    (with-eval-after-load 'helm-files
-      (dolist (keymap (list helm-find-files-map helm-read-file-map))
-	(define-key keymap (kbd "C-l") 'helm-execute-persistent-action)
-	(define-key keymap (kbd "C-h") 'helm-find-files-up-one-level)
-	;; rebind `describe-key' for convenience
-	(define-key keymap (kbd "C-S-h") 'describe-key)))
-    (global-set-key (kbd "C-x C-f") 'helm-find-files)
-    :config
-    (progn
-      (custom-set-faces '(helm-action ((t (:foreground "dark sea green" :underline nil)))) )
-      (setq helm-split-window-inside-p t
-	    helm-echo-input-in-header-line t
-	    helm-autoresize-min-height 20
-	    helm-autoresize-max-height 0
-	    helm-mode-fuzzy-match t
-	    helm-completion-in-region-fuzzy-match t)
-      (setq helm-boring-buffer-regexp-list 
-	    (list 
-	     (rx "*magit-") 
-	     (rx "*helm") 
-	     (rx "*Completions*") 
-	     (rx "*Buffer List*")
-	     (rx "*inferior-lisp*")
-	     (rx "*Fuzzy Completions*")
-	     (rx "*Apropos*")
-	     (rx "*Help*")
-	     (rx "*cvs*")
-	     (rx "*Ibuffer*")
-	     (rx "*esh command on file*")
-	     (rx "*Youdao Dictionary*")))
-      
-      ;;set locate to spotlight in MAC
-      (if (eq system-type 'darwin) (setq helm-locate-fuzzy-match nil))
-      (setq helm-locate-command
-	    (case system-type
-	      ('gnu/linux "locate -i -r %s")
-	      ('berkeley-unix "locate -i %s")
-	      ('windows-nt "es %s")
-	      ('darwin "mdfind -name %s %s")
-	      (t "locate %s")))
-
-      (setq locate-command helm-locate-command)
-      (helm-mode)
-      (helm-autoresize-mode))))
+  :bind (("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("C-x f" . helm-recentf)
+         ("C-SPC" . helm-dabbrev)
+         ("M-y" . helm-show-kill-ring)
+         ("C-x b" . helm-buffers-list))
+  :bind (:map helm-map
+	      ("M-i" . helm-previous-line)
+	      ("M-k" . helm-next-line)
+	      ("M-I" . helm-previous-page)
+	      ("M-K" . helm-next-page)
+	      ("M-h" . helm-beginning-of-buffer)
+	      ("M-H" . helm-end-of-buffer))
+  :config (progn
+	    (custom-set-faces '(helm-action ((t (:foreground "dark sea green" :underline nil)))))
+	    (setq helm-split-window-inside-p t
+		  helm-echo-input-in-header-line t
+		  helm-autoresize-min-height 0
+		  helm-autoresize-max-height 20
+		  helm-mode-fuzzy-match t
+		  helm-completion-in-region-fuzzy-match t)
+	    
+	    ;; Set locate using spotlight instead for mac
+	    ;; Referenced from this post https://github.com/syl20bnr/spacemacs/issues/3280
+	    (if (eq system-type 'darwin) (setq helm-locate-fuzzy-match nil))
+	    (setq helm-locate-command
+		  (case system-type
+		    ('gnu/linux "locate -i -r %s")
+		    ('berkeley-unix "locate -i %s")
+		    ('windows-nt "es %s")
+		    ('darwin "mdfind -name %s %s")
+		    (t "locate %s")))
+	    (helm-autoresize-mode 1)
+            (helm-mode 1)))
     #+END_SRC
-
 *** helm projectile
     #+BEGIN_SRC emacs-lisp
 (use-package helm-projectile
@@ -649,6 +624,30 @@
 (use-package helm-org-rifle
   :commands (helm-org-rifle-agenda-files
 	     helm-org-rifle-occur-agenda-files))
+    #+END_SRC
+*** helm bibtex
+    #+BEGIN_SRC emacs-lisp
+  (use-package helm-bibtex
+    :commands helm-bibtex
+    :init
+    (progn
+      (my/leader-keys
+	"ib" 'ivy-bibtex)
+      ;; (my/leader-keys-minor-mode
+      ;;   :keymaps 'bibtex-completion-notes-mode-map
+      ;;   "s" 'bibtex-completion-exit-notes-buffer)
+      )
+    :general
+    (ivy-minibuffer-map
+     "C-j" 'ivy-next-line
+     "C-k" 'ivy-previous-line
+     "C-h" (kbd "DEL")
+     "C-l" 'ivy-alt-done)
+    :config
+    (setq bibtex-completion-pdf-field "file"
+	  bibtex-completion-find-additional-pdfs t
+	  bibtex-completion-bibliography "~/Documents/bibliography/references.bib"
+	  bibtex-completion-notes-path "~/Documents/bibliography/helm-bibtex-notes"))
     #+END_SRC
 ** company related
    #+BEGIN_SRC emacs-lisp
@@ -715,6 +714,7 @@
 			    (self-insert-command 1)))
       (define-key map (kbd "<return>") nil))))
    #+END_SRC
+
 * Encryption
 ** epa-file
    #+BEGIN_SRC emacs-lisp
@@ -1226,9 +1226,8 @@ KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\
 
 *** org-ref
 
-
-    #+BEGIN_SRC emacs-lisp 
-(use-package org-ref
+    #+BEGIN_SRC emacs-lisp
+(use-package org-ref 
   :after org
   :config
   (progn
@@ -1237,7 +1236,17 @@ KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\
     ;; see org-ref for use of these variables
     (setq org-ref-bibliography-notes "~/Documents/bibliography/notes.org"
 	  org-ref-default-bibliography '("~/Documents/bibliography/references.bib")
-	  org-ref-pdf-directory "~/Documents/bibliography/bibtex-pdfs/")))
+	  org-ref-pdf-directory "~/Documents/bibliography/bibtex-pdfs/")
+
+    ;;(setq bibtex-completion-bibliography "~/Documents/bibliography/references.bib"
+;;	  bibtex-completion-library-path "~/Documents/bibliography/bibtex-pdfs"
+;;	  bibtex-completion-notes-path "~/Documents/bibliography/helm-bibtex-notes")
+
+    ;; open pdf with system pdf viewer (works on mac)
+    (setq bibtex-completion-pdf-open-function
+	  (lambda (fpath)
+	    (start-process "open" "*open*" "open" fpath)))))
+
     #+END_SRC
 
 *** org-pdf 
