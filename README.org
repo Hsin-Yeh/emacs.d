@@ -32,26 +32,40 @@
 - [[#ui][UI]]
   - [[#gui-frame][GUI frame]]
   - [[#highlight-parentheses][highlight parentheses]]
+- [[#universal][universal]]
+  - [[#restart-emacs][restart-emacs]]
 - [[#theme][theme]]
     - [[#grubox-theme][grubox-theme]]
     - [[#zenburn][zenburn]]
 - [[#source-control][source control]]
   - [[#git][git]]
     - [[#magit][magit]]
+- [[#completion][completion]]
+  - [[#helm-related][helm related]]
+    - [[#helm][helm]]
+    - [[#helm-projectile][helm projectile]]
+    - [[#helm-org-rifile][helm org rifile]]
+    - [[#helm-bibtex][helm bibtex]]
+  - [[#company-related][company related]]
 - [[#encryption][Encryption]]
   - [[#epa-file][epa-file]]
 - [[#language][Language]]
   - [[#org-related][Org related]]
     - [[#org-mode][org mode]]
+    - [[#org-refile][org refile]]
+    - [[#org-version][org version]]
     - [[#org-features-config][org features config]]
+    - [[#org-download][org-download]]
     - [[#org-ref][org-ref]]
     - [[#org-pdf][org-pdf]]
   - [[#latex][latex]]
     - [[#auctex][auctex]]
     - [[#scimax-latex][scimax-latex]]
+  - [[#c][c++]]
   - [[#yaml][yaml]]
 - [[#tools][tools]]
   - [[#ranger][ranger]]
+  - [[#multiple-cursor][multiple cursor]]
   - [[#toc-org][toc org]]
 
 * initial
@@ -180,21 +194,21 @@
    #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package hydra)
 ;; :config
-  ;(setq hydra-hint-display-type 'my/posframe)
-  ;(defun my/hydra-posframe-show (str)
-  ;  (require 'posframe)
-  ;  (posframe-show
-  ;   " *hydra-posframe*"
-  ;   :string str
-  ;   :point (point)
-  ;   :internal-border-color "gray50"
-  ;   :internal-border-width 2
-  ;   :poshandler #'posframe-poshandler-frame-top-center)))
-  ;(defun my/hydra-posframe-hide ()
-  ;  (posframe-hide " *hydra-posframe*")))
-  ;;(setq hydra-hint-display-alist
-  ;;	(list (list 'my/posframe #'my/hydra-posframe-show #'my/hydra-posframe-hide))
-  ;;	hydra--work-around-dedicated nil))
+					;(setq hydra-hint-display-type 'my/posframe)
+					;(defun my/hydra-posframe-show (str)
+					;  (require 'posframe)
+					;  (posframe-show
+					;   " *hydra-posframe*"
+					;   :string str
+					;   :point (point)
+					;   :internal-border-color "gray50"
+					;   :internal-border-width 2
+					;   :poshandler #'posframe-poshandler-frame-top-center)))
+					;(defun my/hydra-posframe-hide ()
+					;  (posframe-hide " *hydra-posframe*")))
+;;(setq hydra-hint-display-alist
+;;	(list (list 'my/posframe #'my/hydra-posframe-show #'my/hydra-posframe-hide))
+;;	hydra--work-around-dedicated nil))
    #+END_SRC
 
 ** general
@@ -319,6 +333,10 @@
 ** settings related to built-in features 
    #+begin_src emacs-lisp
 (prefer-coding-system 'utf-8)
+;; set automate revert files that have been changed on disk
+(global-auto-revert-mode t)
+(setq auto-revert-use-notify nil)
+;; 
 (set-default-coding-systems 'utf-8)
 ;; replace "yes" and "no" by "y" and "n"
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -443,7 +461,7 @@
 ;; frequently accessed files 
 (defhydra hydra-frequently-accessed-files (:exit t)
   "files"
-  ("n" (lambda () (interactive) (find-file "~/Dropbox/org/Note.org")) "Note.org")
+  ("n" (lambda () (interactive) (find-file "~/Documents/org/Note.org")) "Note.org")
   ("i" (lambda () (interactive) (find-file "~/.emacs.d/init.org")) "init.org")
   ("h" (lambda () (interactive) (deer "~/Documents/HEP/HGCal/TestBeam/")) "HGCal")
   ("q" nil "quit"))
@@ -492,6 +510,14 @@
   (set-face-attribute 'hl-paren-face nil :weight 'ultra-bold))
    #+END_SRC
 
+* universal
+** restart-emacs
+   #+BEGIN_SRC emacs-lisp
+(use-package restart-emacs
+  :config
+  (setq restart-emacs-restore-frame t)
+  (defalias 'qr 'restart-emacs))
+   #+END_SRC
 * theme
   *Could switch theme function*
 *** grubox-theme
@@ -512,36 +538,146 @@
 * source control 
 ** git 
 *** magit   
-#+BEGIN_SRC emacs-lisp
-  (use-package magit
-    :commands (magit-status magit-init)
-    :general
-    (:keymaps 'magit-mode-map
-     "0" nil
-     "1" nil
-     "2" nil
-     "3" nil
-     "4" nil)
+    #+BEGIN_SRC emacs-lisp
+(use-package magit
+  :commands (magit-status magit-init)
+  :general
+  (:keymaps 'magit-mode-map
+   "0" nil
+   "1" nil
+   "2" nil
+   "3" nil
+   "4" nil)
+  (my/leader-keys
+    "gc"  'magit-clone
+    "gff" 'magit-find-file
+    "gfl" 'magit-log-buffer-file
+    "gfd" 'magit-diff-buffer-file-popup
+    "gi"  'magit-init
+    "gL"  'magit-list-repositories
+    "gm"  'magit-dispatch-popup
+    "gs"  'magit-status
+    "gS"  'magit-stage-file
+    "gU"  'magit-unstage-file)
+  (:keymaps 'magit-hunk-section-map
+   "RET" 'magit-diff-visit-file-other-window)
+  :init
+  (add-hook 'magit-popup-mode-hook (lambda () (display-line-numbers-mode -1)))
+  (add-hook 'magit-status-mode-hook (lambda () (display-line-numbers-mode 1)))
+  (global-set-key (kbd "C-x g") 'magit-status)
+  :config
+  (setq transient-display-buffer-action '(display-buffer-below-selected)
+	magit-completing-read-function #'ivy-completing-read))
+
+
+    #+END_SRC
+
+* completion
+** helm related 
+*** helm
+    #+BEGIN_SRC emacs-lisp 
+(use-package helm
+  :bind (("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("C-x f" . helm-recentf)
+         ("C-SPC" . helm-dabbrev)
+         ("M-y" . helm-show-kill-ring)
+         ("C-x b" . helm-buffers-list))
+  :bind (:map helm-map
+	 ("M-i" . helm-previous-line)
+	 ("M-k" . helm-next-line)
+	 ("M-I" . helm-previous-page)
+	 ("M-K" . helm-next-page)
+	 ("M-h" . helm-beginning-of-buffer)
+	 ;;("<tab>", helm-execute-persistent-action)
+	 ("M-H" . helm-end-of-buffer))
+  :config (progn
+	    (custom-set-faces '(helm-action ((t (:foreground "dark sea green" :underline nil)))))
+	    (setq helm-split-window-inside-p t
+		  helm-echo-input-in-header-line t
+		  helm-autoresize-min-height 0
+		  helm-autoresize-max-height 20
+		  helm-mode-fuzzy-match t
+		  helm-completion-in-region-fuzzy-match t)
+	    
+	    ;; Set locate using spotlight instead for mac
+	    ;; Referenced from this post https://github.com/syl20bnr/spacemacs/issues/3280
+	    (if (eq system-type 'darwin) (setq helm-locate-fuzzy-match nil))
+	    (setq helm-locate-command
+		  (case system-type
+		    ('gnu/linux "locate -i -r %s")
+		    ('berkeley-unix "locate -i %s")
+		    ('windows-nt "es %s")
+		    ('darwin "mdfind -name %s %s")
+		    (t "locate %s")))
+	    (helm-autoresize-mode 1)
+            (helm-mode 1)))
+    #+END_SRC
+*** helm projectile
+    #+BEGIN_SRC emacs-lisp
+(use-package helm-projectile
+  :commands (helm-projectile-switch-to-buffer
+	     helm-projectile-find-dir
+	     helm-projectile-dired-find-dir
+	     helm-projectile-recentf
+	     helm-projectile-find-file
+	     helm-projectile-grep
+	     helm-projectile
+	     helm-projectile-switch-project))
+    #+END_SRC
+*** helm org rifile
+    #+BEGIN_SRC emacs-lisp 
+(use-package helm-org-rifle
+  :commands (helm-org-rifle-agenda-files
+	     helm-org-rifle-occur-agenda-files))
+    #+END_SRC
+*** helm bibtex
+    #+BEGIN_SRC emacs-lisp
+(use-package helm-bibtex
+  :commands helm-bibtex
+  :init
+  (progn
     (my/leader-keys
-      "gc"  'magit-clone
-      "gff" 'magit-find-file
-      "gfl" 'magit-log-buffer-file
-      "gfd" 'magit-diff-buffer-file-popup
-      "gi"  'magit-init
-      "gL"  'magit-list-repositories
-      "gm"  'magit-dispatch-popup
-      "gs"  'magit-status
-      "gS"  'magit-stage-file
-      "gU"  'magit-unstage-file)
-    (:keymaps 'magit-hunk-section-map
-     "RET" 'magit-diff-visit-file-other-window)
-    :init
-    (add-hook 'magit-popup-mode-hook (lambda () (display-line-numbers-mode -1)))
-    (add-hook 'magit-status-mode-hook (lambda () (display-line-numbers-mode 1)))
-    :config
-    (setq transient-display-buffer-action '(display-buffer-below-selected)
-	  magit-completing-read-function #'ivy-completing-read))
-#+END_SRC
+      "ib" 'ivy-bibtex)
+    ;; (my/leader-keys-minor-mode
+    ;;   :keymaps 'bibtex-completion-notes-mode-map
+    ;;   "s" 'bibtex-completion-exit-notes-buffer)
+    )
+  :general
+  (ivy-minibuffer-map
+   "C-j" 'ivy-next-line
+   "C-k" 'ivy-previous-line
+   "C-h" (kbd "DEL")
+   "C-l" 'ivy-alt-done)
+  :config
+  (setq bibtex-completion-pdf-field "file"
+	bibtex-completion-find-additional-pdfs t
+	bibtex-completion-bibliography "~/Documents/bibliography/references.bib"
+	bibtex-completion-notes-path "~/Documents/bibliography/helm-bibtex-notes"))
+    #+END_SRC
+** company related
+   #+BEGIN_SRC emacs-lisp
+(use-package company
+  :init
+  (progn 
+    (add-hook 'after-init-hook 'global-company-mode))
+  :config  
+  (progn
+    (let ((map company-active-map))
+      (define-key map (kbd "C-j") 'company-select-next)
+      (define-key map (kbd "C-k") 'company-select-previous)
+      (define-key map (kbd "C-l") 'company-complete-selection))
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 3)
+  (setq company-backends 
+	'(company-capf
+	  company-dabbrev-code
+	  company-keywords
+	  company-files
+	  company-ispell
+	  company-yasnippet
+	  company-abbrev))))
+   #+END_SRC
 
 * Encryption
 ** epa-file
@@ -554,6 +690,9 @@
 * Language
 ** Org related 
 *** org mode
+    :LOGBOOK:
+    CLOCK: [2019-12-06 Fri 22:07]--[2019-12-06 Fri 22:08] =>  0:01
+    :END:
 
     #+BEGIN_SRC emacs-lisp
 
@@ -562,56 +701,69 @@
   :mode ("\\.org\\'" . org-mode)
   :init
   (require 'org-tempo)
+  (require 'org-mouse)
   (setq org-log-done 'time)
   (setq org-M-RET-may-split-line nil)
   (setq org-display-custom-times nil)
   (setq org-confirm-babel-evaluate nil)
   (setq org-use-fast-todo-selection t)
   (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+  (setq org-agenda-default-appointment-duration 60)
+  (setq time-zone-rule "GMT-8")
+  (setq org-icalendar-use-scheduled '(todo-start event-if-todo))
+  ;; Set default column view headings: Task Total-Time Time-Stamp
+  (setq org-columns-default-format "%50ITEM(Task) %10CLOCKSUM %16TIMESTAMP_IA")
 
 
-  (setq org-agenda-files '("~/Dropbox/org/"))
+  (setq org-agenda-files '("~/Documents/org/"))
   ;; Set to the location of your Org files on your local system
-  (setq org-directory "~/Dropbox/org")
+  (setq org-directory "~/Documents/org")
   ;; Set to the name of the file where new notes will be stored
-  (setq org-mobile-inbox-for-pull "~/Dropbox/flagged.org")
-  ;; Set to <your Dropbox root directory>/MobileOrg.
+  (setq org-mobile-inbox-for-pull "~/Documents/flagged.org")
+  ;; Set to <your Document root directory>/MobileOrg.
   (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+  ;; Set combine calendar filename 
+  (setq org-icalendar-combined-agenda-file "~/Documents/org/combine.ics")
+
 
   (setq org-todo-keywords
 	(quote ((sequence "TODO(t)" "IN-PROGRESS(n)" "|" "DONE(d)")
 		(sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "MEETING"))))
 
+  (setq org-agenda-files (apply 'append
+				(mapcar
+				 (lambda (directory)
+				   (directory-files-recursively
+				    directory org-agenda-file-regexp))
+				 '("~/Documents/org/" ))))
+
+
   (setq org-todo-keyword-faces
-	(quote (("IN-PROGRESS" :foreground "red" :weight bold)
+	(quote (("IN-PROGRESS" :foreground "orange" :weight bold)
 		("DONE" :foreground "forest green" :weight bold)
-		("WAITING" :foreground "orange" :weight bold)
+		("WAITING" :foreground "red" :weight bold)
 		("HOLD" :foreground "magenta" :weight bold)
 		("CANCELLED" :foreground "forest green" :weight bold)
-		("MEETING" :foreground "forest green" :weight bold)
-		("PHONE" :foreground "forest green" :weight bold))))
+		("MEETING" :foreground "forest green" :weight bold))))
 
+  ;;setting up capture
+  (setq org-default-notes-file (concat org-directory "/capture/capture.org"))
+					; Targets include this file and any file contributing to the agenda - up to 9 levels deep
 
   (setq org-capture-templates
-	'(("t" "TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	'(("t" "TODO" entry (file+headline "~/Documents/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  %U" :empty-lines 1)
-	  ("s" "Scheduled TODO" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Schedule")
+	  ("s" "Scheduled TODO" entry (file+headline "~/Documents/org/capture/capture.org" "Schedule")
 	   "* TODO %? %^G \nSCHEDULED: %^t\n  %U" :empty-lines 1)
-	  ("d" "Deadline" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
+	  ("d" "Deadline" entry (file+headline "~/Documents/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  DEADLINE: %^t" :empty-lines 1)
-	  ("p" "Priority" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Todo")
-	   "* TODO [#A] %? %^G \n  SCHEDULED: %^t")
-	  ("a" "Appointment" entry (file+headline "/Users/yaya/Dropbox/org/TODO.org" "Appointment")
+	  ("a" "Appointment" entry (file+headline "~/Documents/org/capture/capture.org" "")
 	   "* %? %^G \n  %^t")
-	  ("l" "Link" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Link")
-	   "* TODO %a %? %^G\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n")
-	  ("n" "Note" entry (file+headline "/Users/yaya/Dropbox/org/Note.org" "Notes")
+	  ("n" "Note" entry (file+headline "~/Documents/org/capture/capture.org" "Notes")
 	   "* %? %^G\n%U" :empty-lines 1)
-	  ("h" "Habit" entry (file "/Users/yaya/Dropbox/org/TODO.org" "Habit")
-	   "* TODO %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
-	  ("j" "Journal" entry (file+datetree "/Users/yaya/Dropbox/org/journal.org")
-	   "* %? %^G\nEntered on %U\n" :empty-lines)))
-
+	  ("j" "Journal" entry (file+olp+datetree "~/Documents/org/life/journal.org")
+	   "* %?\nEntered on %U\n  %i\n  %a")))
+ 
 
   (defun air-org-skip-subtree-if-habit ()
     "Skip an agenda entry if it has a STYLE property equal to \"habit\"."
@@ -653,6 +805,9 @@
     (when (not split)
       (delete-other-windows)))
 
+  (global-set-key (kbd "<f1>") 'org-clock-in)
+  (global-set-key (kbd "<mouse-2>") 'org-clock-in)
+  (global-set-key (kbd "<f2>") 'org-clock-out)
   (global-set-key (kbd "<f3>") 'air-pop-to-org-agenda)
 
   (defun air-org-agenda-capture (&optional vanilla)
@@ -665,19 +820,119 @@
       (let ((org-overriding-default-time (org-get-cursor-date)))
 	(org-capture nil "t"))))
 
-  ;;(define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+  (eval-after-load "org-agenda"
+    '(progn
+       (define-key org-agenda-mode-map (kbd "<f1>") 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map (kbd "<f2>") 'org-agenda-clock-out)
+       ;;(define-key org-agenda-mode-map (kbd "<mouse-1>") 'org-agenda-goto)
+       (define-key org-agenda-mode-map (kbd "<mouse-2>") 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+       (define-key org-agenda-mode-map "i" 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map "o" 'org-agenda-clock-out)))
 
 
-  :bind
-  ("C-c l" . org-store-link)
-  ("C-c a" . org-agenda)
-  ("C-c c" . org-capture))
+
+    #+end_src
+
+*** org refile
+
+    #+begin_src emacs-lisp
+
+;; set org refile
+(setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+(setq org-refile-use-outline-path 'file)
+(setq org-outline-path-complete-in-steps nil)
+(setq org-refile-allow-creating-parent-nodes 'confirm)
+
+(defun my/refile (file headline &optional arg)
+  (let ((pos (save-excursion
+               (find-file file)
+               (org-find-exact-headline-in-buffer headline))))
+    (org-refile arg nil (list headline file nil pos)))
+  (switch-to-buffer (current-buffer)))
+
+(defmacro josh/make-org-refile-hydra (hydraname file keyandheadline)
+  "Make a hydra named HYDRANAME with refile targets to FILE.
+KEYANDHEADLINE should be a list of cons cells of the form (\"key\" . \"headline\")"
+  `(defhydra ,hydraname (:color blue :after-exit (josh/org-refile-hydra/body))
+     ,file
+     ,@(cl-loop for kv in keyandheadline
+		collect (list (car kv) (list 'my/refile file (cdr kv)) (cdr kv)))
+     ("q" nil "cancel")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-a
+			    "~/Documents/org/projects/HGCal/MAC.org"
+			    (("1" . "General")
+			     ("2" . "Tooling")
+			     ("3" . "rpi")
+			     ("4" . "t-pcb module assembly")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-b
+			    "~/Documents/org/life/daily.org"
+			    (("1" . "General")
+			     ("2" . "habits")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-c
+			    "~/Documents/org/projects/Emacs/EmacsCool.org"
+			    (("1" . "General")
+			     ("2" . "Org")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-d
+			    "~/Documents/org/projects/HGCal/TestBeam.org"
+			    (("1" . "General")
+			     ("2" . "Cross Talk")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-e
+			    "~/Documents/org/projects/Learning/coding.org"
+			    (("1" . "linux")
+			     ("2" . "c++")
+			     ("3" . "python")
+			     ("4" . "git")))
+(josh/make-org-refile-hydra josh/org-refile-hydra-file-f
+			    "~/Documents/org/projects/Learning/Alibava.org"
+			    (("1" . "General")
+			     ("2" . "laser")
+			     ("3" . "cosmic")))
+
+
+(defhydra josh/org-refile-hydra (:foreign-keys run) 
+  "Refile"
+  ("1" josh/org-refile-hydra-file-a/body "MAC" :exit t)
+  ("2" josh/org-refile-hydra-file-b/body "daily" :exit t)
+  ("3" josh/org-refile-hydra-file-c/body "emacs" :exit t)
+  ("4" josh/org-refile-hydra-file-d/body "testbeam" :exit t)
+  ("5" josh/org-refile-hydra-file-e/body "code" :exit t)
+  ("6" josh/org-refile-hydra-file-f/body "alibava" :exit t)
+  ("q" nil "cancel"))
+
+:bind
+("C-c l" . org-store-link)
+("C-c a" . org-agenda)
+("C-c c" . org-capture))
 
     #+END_SRC
 
     #+RESULTS:
     : org-capture
 
+*** org version 
+    #+begin_src emacs-lisp :tangle no
+(require 'git)
+(require 'f)
+(require 's)
+
+(defun the-org-git-version ()
+  (let ((git-repo
+	 (f-join user-emacs-directory "straight/repos/org")))
+    (s-trim (git-run "describe"
+		     "--match=release\*"
+		     "--abbrev=6"
+		     "HEAD"))))
+
+(defun the-org-release ()
+  (let ((git-repo
+	 (f-join user-emacs-directory "straight/repos/org")))
+    (s-trim (s-chop-prefix "release_"
+			   (git-run "describe"
+				    "--match=release\*"
+				    "--abbrev=0"
+				    "HEAD")))))
+    #+end_src
 *** org features config
 **** org-src 
      Define src block behaviors 
@@ -914,18 +1169,19 @@
 		org-noter-notes-search-path '("~/org/Research-Notes")
 		org-noter-separate-notes-from-heading t))
      #+end_src
-**** org-download
-     #+begin_src emacs-lisp
+*** org-download
+
+    MAC users should first download imageagick 
+    $brew install imagemagick
+
+    #+begin_src emacs-lisp
 
 ;; Package org-download allows drag and drop of images directly into Emacs org-mode.
 (use-package org-download
   :after org
-  :demand t
-
   :commands (org-download-enable
 	     org-download-yank
 	     org-download-screenshot)
-
   :init
   (setq-default org-download-image-dir "./img")
   (setq org-download-screenshot-method "screencapture -i %s")
@@ -946,34 +1202,46 @@
 
   ;; only modify `org-download-method' in this project
   (setq-local org-download-method 'my-org-download-method)
-
- 
+  
+  (add-hook 'dired-mode-hook 'org-download-enable)
+  (global-set-key [M-s-drag-n-drop] 'ns-drag-n-drop)
+  (global-set-key [M-drag-n-drop] 'ns-drag-n-drop)
+  
   :hook ((org-mode dired-mode) . org-download-enable))
 
-     #+end_src
+    #+end_src
 
 *** org-ref
 
-
-    #+BEGIN_SRC emacs-lisp 
-(use-package org-ref
+    #+BEGIN_SRC emacs-lisp
+(use-package org-ref 
   :after org
   :config
   (progn
-    (setq reftex-default-bibliography '("~/Dropbox/bibliography/references.bib"))
+    (setq reftex-default-bibliography '("~/Documents/bibliography/references.bib"))
 
     ;; see org-ref for use of these variables
-    (setq org-ref-bibliography-notes "~/Dropbox/bibliography/notes.org"
-	  org-ref-default-bibliography '("~/Dropbox/bibliography/references.bib")
-	  org-ref-pdf-directory "~/Dropbox/bibliography/bibtex-pdfs/")))
+    (setq org-ref-bibliography-notes "~/Documents/bibliography/notes.org"
+	  org-ref-default-bibliography '("~/Documents/bibliography/references.bib")
+	  org-ref-pdf-directory "~/Documents/bibliography/bibtex-pdfs/")
+
+    ;;(setq bibtex-completion-bibliography "~/Documents/bibliography/references.bib"
+    ;;	  bibtex-completion-library-path "~/Documents/bibliography/bibtex-pdfs"
+    ;;	  bibtex-completion-notes-path "~/Documents/bibliography/helm-bibtex-notes")
+
+    ;; open pdf with system pdf viewer (works on mac)
+    (setq bibtex-completion-pdf-open-function
+	  (lambda (fpath)
+	    (start-process "open" "*open*" "open" fpath)))))
+
     #+END_SRC
 
 *** org-pdf 
 
-    #+begin_src emacs-lisp
+    #+begin_src emacs-lisp 
 (setq image-file-name-extensions
-   (quote
-    ("png" "jpeg" "jpg" "gif" "tiff" "tif" "xbm" "xpm" "pbm" "pgm" "ppm" "pnm" "svg" "pdf" "bmp")))
+      (quote
+       ("png" "jpeg" "jpg" "gif" "tiff" "tif" "xbm" "xpm" "pbm" "pgm" "ppm" "pnm" "svg" "pdf" "bmp")))
 
 (setq org-image-actual-width 600)
 
@@ -1005,7 +1273,7 @@ BEG and END default to the buffer boundaries."
         (while (re-search-forward re end t)
           (setq old (get-char-property-and-overlay (match-beginning 1)
                                                    'org-image-overlay)
-        file (expand-file-name
+		file (expand-file-name
                       (concat (or (match-string 3) "") (match-string 4))))
           (when (file-exists-p file)
             (let ((file-thumb (format "%s%s_thumb.png" (file-name-directory file) (file-name-base file))))
@@ -1013,10 +1281,10 @@ BEG and END default to the buffer boundaries."
                   (let ((thumb-time (nth 5 (file-attributes file-thumb 'string)))
                         (file-time (nth 5 (file-attributes file 'string))))
                     (if (time-less-p thumb-time file-time)
-            (shell-command (format org-imagemagick-display-command
-                           file org-image-actual-width org-image-actual-width file-thumb) nil nil)))
+			(shell-command (format org-imagemagick-display-command
+					       file org-image-actual-width org-image-actual-width file-thumb) nil nil)))
                 (shell-command (format org-imagemagick-display-command
-                                         file org-image-actual-width org-image-actual-width file-thumb) nil nil))
+				       file org-image-actual-width org-image-actual-width file-thumb) nil nil))
               (if (and (car-safe old) refresh)
                   (image-refresh (overlay-get (cdr old) 'display))
                 (setq img (save-match-data (create-image file-thumb)))
@@ -1028,7 +1296,7 @@ BEG and END default to the buffer boundaries."
                   (overlay-put ov 'modification-hooks
                                (list 'org-display-inline-remove-overlay))
                   (push ov org-inline-image-overlays))))))))))
-    
+
     #+end_src
 ** latex
 *** auctex
@@ -1075,6 +1343,11 @@ BEG and END default to the buffer boundaries."
 	     kpsewhich
 	     texdoc))
     #+end_src
+** c++
+   #+begin_src emacs-lisp
+(setq c-default-style "linux"
+      c-basic-offset 4)
+   #+end_src
 ** yaml
    
    #+BEGIN_SRC emacs-lisp
@@ -1092,6 +1365,7 @@ BEG and END default to the buffer boundaries."
 
    #+BEGIN_SRC emacs-lisp
 
+
 (use-package ranger)
 (defalias 'ar 'ranger)
 (defalias 'ad 'deer)
@@ -1103,9 +1377,15 @@ BEG and END default to the buffer boundaries."
 
    #+END_SRC
 
+** multiple cursor
+
+   #+begin_src emacs-lisp
+(use-package multiple-cursors)
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+   #+end_src
 
 ** toc org
-#+BEGIN_SRC emacs-lisp
-  (use-package toc-org
-    :ghook ('org-mode-hook))
-#+END_SRC
+   #+BEGIN_SRC emacs-lisp
+(use-package toc-org
+  :ghook ('org-mode-hook))
+   #+END_SRC
