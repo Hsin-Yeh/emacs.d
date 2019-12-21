@@ -65,6 +65,7 @@
   - [[#yaml][yaml]]
 - [[#tools][tools]]
   - [[#ranger][ranger]]
+  - [[#multiple-cursor][multiple cursor]]
   - [[#toc-org][toc org]]
 
 * initial
@@ -689,6 +690,9 @@
 * Language
 ** Org related 
 *** org mode
+    :LOGBOOK:
+    CLOCK: [2019-12-06 Fri 22:07]--[2019-12-06 Fri 22:08] =>  0:01
+    :END:
 
     #+BEGIN_SRC emacs-lisp
 
@@ -697,6 +701,7 @@
   :mode ("\\.org\\'" . org-mode)
   :init
   (require 'org-tempo)
+  (require 'org-mouse)
   (setq org-log-done 'time)
   (setq org-M-RET-may-split-line nil)
   (setq org-display-custom-times nil)
@@ -717,6 +722,8 @@
   (setq org-mobile-inbox-for-pull "~/Documents/flagged.org")
   ;; Set to <your Document root directory>/MobileOrg.
   (setq org-mobile-directory "~/Dropbox/Apps/MobileOrg")
+  ;; Set combine calendar filename 
+  (setq org-icalendar-combined-agenda-file "~/Documents/org/combine.ics")
 
 
   (setq org-todo-keywords
@@ -750,7 +757,7 @@
 	   "* TODO %? %^G \nSCHEDULED: %^t\n  %U" :empty-lines 1)
 	  ("d" "Deadline" entry (file+headline "~/Documents/org/capture/capture.org" "Todo")
 	   "* TODO %? %^G \n  DEADLINE: %^t" :empty-lines 1)
-	  ("a" "Appointment" entry (file+headline "~/Documents/org/appts/appts.org" "")
+	  ("a" "Appointment" entry (file+headline "~/Documents/org/capture/capture.org" "")
 	   "* %? %^G \n  %^t")
 	  ("n" "Note" entry (file+headline "~/Documents/org/capture/capture.org" "Notes")
 	   "* %? %^G\n%U" :empty-lines 1)
@@ -798,6 +805,9 @@
     (when (not split)
       (delete-other-windows)))
 
+  (global-set-key (kbd "<f1>") 'org-clock-in)
+  (global-set-key (kbd "<mouse-2>") 'org-clock-in)
+  (global-set-key (kbd "<f2>") 'org-clock-out)
   (global-set-key (kbd "<f3>") 'air-pop-to-org-agenda)
 
   (defun air-org-agenda-capture (&optional vanilla)
@@ -810,7 +820,18 @@
       (let ((org-overriding-default-time (org-get-cursor-date)))
 	(org-capture nil "t"))))
 
-  ;;(define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+  (eval-after-load "org-agenda"
+    '(progn
+       (define-key org-agenda-mode-map (kbd "<f1>") 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map (kbd "<f2>") 'org-agenda-clock-out)
+       ;;(define-key org-agenda-mode-map (kbd "<mouse-1>") 'org-agenda-goto)
+       (define-key org-agenda-mode-map (kbd "<mouse-2>") 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map "c" 'air-org-agenda-capture)
+       (define-key org-agenda-mode-map "i" 'org-agenda-clock-in)
+       (define-key org-agenda-mode-map "o" 'org-agenda-clock-out)))
+
+
+
     #+end_src
 
 *** org refile
@@ -1356,6 +1377,12 @@ BEG and END default to the buffer boundaries."
 
    #+END_SRC
 
+** multiple cursor
+
+   #+begin_src emacs-lisp
+(use-package multiple-cursors)
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+   #+end_src
 
 ** toc org
    #+BEGIN_SRC emacs-lisp
